@@ -116,6 +116,10 @@ These each produced a wrong log before the scripts existed:
 - **Worktree sessions live in sibling project dirs.** `~/.claude/projects/`
   holds a separate directory per worktree; `extract.rb` globs all of them.
   Missing those makes the author's own asks look like agent-initiated work.
+- **Injected content arrives as a user turn.** Skill bodies, image
+  placeholders and caveats all land as `type: "user"`, and reading them as
+  prompts puts a page of skill documentation in the log. They carry
+  `isMeta: true`; filter on that rather than on a list of prefixes.
 - **Parallel sessions interleave.** One day may hold three sessions on different
   branches. They merge into one paragraph; `extract.rb` marks blocks that span
   more than one source with `[+worktree]`.
@@ -128,9 +132,21 @@ These each produced a wrong log before the scripts existed:
 entries run oldest first, and no day runs long. Run it after every write; it
 catches dropped PRs that reading cannot.
 
-## Capturing as you go (optional)
+## Capturing as you go
 
-Reconstruction is lossy and slow. A `SessionEnd` hook that appends the session's
-prompts to `.intent/staging/<date>.jsonl` (gitignored) makes the daily update
-cheap, and sidesteps the timezone and worktree traps because the session knows
-its own context. Offer this; do not install it without being asked.
+Reconstruction is lossy and slow. `intent-stage.rb` is a `SessionEnd` hook that
+drops each session's prompts into `.intent/staging/<date>.jsonl` (gitignore it),
+so the daily entry is written from fresh material rather than archaeology. It
+also sidesteps the timezone and worktree traps, because a session knows its own
+transcript and cwd.
+
+Register it per-person in `.claude/settings.local.json`, never in the committed
+`.claude/settings.json`, so nobody inherits a hook they did not ask for:
+
+```json
+{"hooks": {"SessionEnd": [{"hooks": [
+  {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-stage.rb\"", "timeout": 15}
+]}]}}
+```
+
+Install it only when asked.

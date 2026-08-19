@@ -9,10 +9,9 @@ require "set"
 require "time"
 require "optparse"
 
-NOISE_PREFIXES = [
-  "<", "[Request", "[Image", "Caveat:", "This session is being continued",
-  "Base directory for this skill", "Approach this as the design lead"
-].freeze
+# Claude Code marks injected content (skill bodies, image placeholders, caveats)
+# with isMeta, which covers far more than a list of prefixes ever did.
+NOISE_PREFIXES = ["<", "[Request", "This session is being continued"].freeze
 
 NOISE_EXACT = [
   "continue", "continue from where you left off.", "/compact", "/clear",
@@ -42,6 +41,7 @@ def prompts_in(file, source)
       next
     end
     next unless record["type"] == "user" && record["timestamp"]
+    next if record["isMeta"]
 
     text = message_text(record.dig("message", "content"))&.strip
     next if text.nil? || text.length < 4

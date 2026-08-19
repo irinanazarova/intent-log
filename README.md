@@ -85,6 +85,10 @@ wrong answer:
 - **A day is a work block, not a calendar date.** Sessions run past midnight, so
   it segments on a five-hour idle gap and labels the block by the day it began.
 
+`intent-stage.rb` is the other half: a `SessionEnd` hook that stages each
+session's prompts into `.intent/staging/<date>.jsonl` as you go, so tomorrow's
+entry is written from fresh material instead of archaeology.
+
 `check.rb` asserts every PR appears exactly once with the right state marker,
 entries run oldest first, no day runs long, and lines stay wrapped. It catches
 dropped PRs that reading does not.
