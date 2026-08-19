@@ -65,6 +65,13 @@ ruby check.rb docs/intent-log.md                  # invariants
 ruby check.rb docs/intent-log.md --fix            # rewrap
 ```
 
+The example in this repo checks against the project it came from:
+
+```sh
+ruby check.rb example/sfruby-cards.md --year 2026 --repo palkan/sfruby-clouds
+# ok: 61 PRs accounted for across 15 entries
+```
+
 `extract.rb` reads only your own prompts, never the assistant's turns. Every
 rule in it exists because reconstructing that example log without it produced a
 wrong answer:
