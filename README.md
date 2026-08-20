@@ -1,49 +1,44 @@
 # Intent log
 
-I ship a lot of code I did not write. Thirty pull requests in three weeks on one
-project, and my colleague could not stay on top of it. Neither could I, if I am
-honest: I could not have reviewed that much code either.
+A daily log of what we worked on, and what shipped or got dropped. One short
+list per day, tagged with the PRs it produced.
 
-The code is in git. What is not in git is what I *wanted*, and that turns out to
-be the part a teammate needs to help me.
+**Why:** so teammates can stay on track and step in where they're needed,
+without reading every pull request.
 
-So: one short paragraph per day of work, in order, tagged with the PRs it
-produced. Under 2,000 words for three weeks. A colleague reads it in five
-minutes and knows where to jump in.
+**And, in theory:** context for a future refactor. Months later the log says
+what was intentional and what was just how it came out.
+
+## How it works
+
+One list a day, in order. Each line is something we worked on, and the PR tag
+says where it got to.
 
 ```markdown
 ## Fri Aug 14
 
-The pier ships. `#26` Changed my mind about placement: not centre-outwards,
-everyone gets a random free spot, so you actually have to search for your
-friends. [...] Wanted a "send hi" button that opens a Slack DM with that person,
-decided it's a whole feature and postponed it.
+- the pier: find-yourself map, quests, sponsors, wildlife `#26`
+- changed my mind on placement: a random free spot each, so you search for
+  your friends
+- sponsor banners on rooftops, sized by tier, never overlapping anyone
+- leg repair I approve in admin rather than something that just happens `#25`
+- a "send hi" button on a card that opens a Slack DM
 
-*From review: `#28` `#36`*
-
-*Could use a hand: that Slack DM deep link. Still want it, still not built.*
+*From review: `#28`*
+*Could use a hand: the Slack DM deep link. I decided it's a whole feature and
+postponed it, still want it.*
 ```
 
-[`example/sfruby-cards.md`](example/sfruby-cards.md) is a real one: three weeks
-of building a conference game, 61 PRs, reconstructed from my own prompts.
+- `` `#26` `` — merged, it's done
+- `` `#61 open` `` — still in progress
+- `` `#7 dropped` `` — the PR was closed
+- no tag — nothing shipped for it
 
-## What goes in it
+A line with no tag stays visibly missing, which is what `*Could use a hand:*`
+picks up.
 
-Intent and outcome. Nothing else.
-
-A sentence earns its place if it traces to something I said, decided, refused,
-changed my mind about, or gave up on. If it would still be true after somebody
-rewrites the implementation, it belongs. Otherwise it is PR-body material.
-
-Back and forth is the default condition of this work, so narrating it says
-nothing. It earns a line in three cases: I gave up, I reversed myself, or I
-parked something. That is why the log carries "the ocean I could not get right
-at any volume, so I pulled it out entirely" and carries none of the six rounds
-of volume tuning that led there.
-
-Work the agent started and I never asked for is not intent. It goes in the day's
-`*From review:*` tail, so the PR is still accounted for without pretending it
-was my idea.
+[`example/sfruby-cards.md`](example/sfruby-cards.md) is a real one: four weeks
+of building a conference game, 75 PRs, 1,444 words.
 
 ## Install
 
@@ -51,41 +46,53 @@ was my idea.
 git clone https://github.com/irinanazarova/intent-log ~/.claude/skills/intent-log
 ```
 
-Then `/intent-log` in Claude Code, in any repo. It writes `docs/intent-log.md`.
+Then `/intent-log` in any repo, in Claude Code. It writes `docs/intent-log.md`.
 
-## The two scripts
+## What the scripts do
 
-`SKILL.md` holds the rules for writing an entry. The scripts hold the parts that
-should never be a judgment call:
+`SKILL.md` holds the rules for writing an entry. The scripts do the parts that
+shouldn't be a judgment call.
+
+**`extract.rb` — pulls the day's prompts out of the transcripts**, grouped into
+work blocks, so an entry is written from what was actually asked for rather than
+from memory. It reads only your own turns, never the assistant's.
 
 ```sh
-ruby extract.rb blocks --repo ~/code/myapp        # what the work blocks were
-ruby extract.rb dump 2026-08-14 --repo ~/code/myapp
-ruby check.rb docs/intent-log.md                  # invariants
-ruby check.rb docs/intent-log.md --fix            # rewrap
+ruby extract.rb blocks --repo ~/code/myapp           # what the work blocks were
+ruby extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
 ```
 
-`extract.rb` reads only your own prompts, never the assistant's turns. Every
-rule in it exists because reconstructing that example log without it produced a
-wrong answer:
+Three things it handles, each of which got the log wrong when done by hand:
+transcript timestamps are UTC, so anything before ~07:00 local lands on the
+wrong day; every worktree gets its own directory under `~/.claude/projects/`,
+and missing them makes your own asks look like the agent's; and a day is a work
+block rather than a date, so a session running past midnight stays with the day
+it started.
 
-- **Transcript timestamps are UTC.** Bucketing on the raw date moves anything
-  before ~07:00 local onto the wrong day. Go-live landed a day late, and a
-  decision made on Sunday evening showed up as Monday's.
-- **Worktree sessions live in sibling directories.** `~/.claude/projects/` holds
-  a separate directory per worktree. Missing six of them made my own asks look
-  like work the agent started on its own.
-- **A day is a work block, not a calendar date.** Sessions run past midnight, so
-  it segments on a five-hour idle gap and labels the block by the day it began.
+**`check.rb` — asserts what reading misses.** Every PR appears exactly once with
+the right state marker, entries run oldest first, each day is a list rather than
+prose, no bullet runs past 20 words, no day runs long, and a heading's weekday
+is the real one.
 
-`check.rb` asserts every PR appears exactly once with the right state marker,
-entries run oldest first, no day runs long, and lines stay wrapped. It catches
-dropped PRs that reading does not.
+```sh
+ruby check.rb docs/intent-log.md          # invariants
+ruby check.rb docs/intent-log.md --fix    # rewrap
+```
 
-## Why this might be worth something
+**`intent-stage.rb` — saves each session's prompts as you go**, into
+`.intent/staging/<date>.jsonl`, so the entry is written from fresh material
+instead of archaeology weeks later. It's a `SessionEnd` hook:
 
-The hypothesis is not that a log replaces review. It is that a colleague who
-reads three weeks of intent in five minutes knows where to spend an hour, and
-that is a much better question than "can you review 30 PRs".
+```sh
+cp intent-stage.rb ~/code/myapp/.claude/hooks/
+```
 
-Unverified so far. That is the point of the example.
+```json
+{"hooks": {"SessionEnd": [{"hooks": [
+  {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-stage.rb\"", "timeout": 15}
+]}]}}
+```
+
+Put it in `.claude/settings.local.json` rather than the committed
+`settings.json`, so nobody inherits a hook they didn't ask for, and add
+`.intent/` to `.gitignore`.
