@@ -1,95 +1,106 @@
----
-name: intent-log
-description: Keep or reconstruct docs/intent-log.md, a short chronological record of what the human wanted and what shipped, so a teammate who was away can catch up in five minutes and see where to help. Use when asked to update, write, backfill, or reconstruct an intent log, or when catching a colleague up on a burst of AI-assisted work.
----
-
 # Intent log
 
 A team ships faster than it can review. The code is in git; what the person
 *wanted* is not, and that is what a returning teammate actually needs. This
-skill keeps `docs/intent-log.md`: one short paragraph per day of work, in
+skill keeps `docs/intent-log.md`: one short list per day of work, in
 chronological order, tagged with PR numbers.
-
-## What belongs in it
-
-**Intent and outcome. Nothing else.**
-
-Every sentence must trace to something the human said, decided, refused, changed
-their mind about, or gave up on. If a sentence would still be true after
-somebody rewrites the implementation, it belongs. Otherwise it is PR-body
-material and gets cut.
-
-Back and forth is the default condition of the work, so narrating it carries no
-information. It earns a line only in three cases:
-
-- **They gave up.** "The ocean I could not get right at any volume, so I pulled
-  it out entirely."
-- **They reversed a decision.** "Changed my mind about placement: not
-  centre-outwards, everyone gets a random free spot."
-- **They parked something.** "Decided it's a whole feature and postponed it."
-
-Cut everything else: reviews run, tests written, iterations tried, servers
-restarted, things checked on a phone. Work the agent initiated and the human
-never asked for is not intent; it goes in the day's `*From review:*` tail so the
-PR is still accounted for.
-
-## Style
-
-Plain and laid back, first person, the way the person actually talks. No
-"leveraged", no "implemented", no "successfully". Prefer the verbs of intent:
-asked, wanted, refused, decided, changed my mind, postponed, gave up.
-
-**Name the concrete thing.** "Two fields that both mean the name" is
-unreadable a week later; "`name` and `full_name`" is not. A vague noun is the
-single most common way one of these entries goes stale.
-
-**Say where an idea came from** when it wasn't the author's: a reviewer's
-comment, a player's feedback, the team. That is the collaboration signal a
-teammate reads the log for.
-
-**Say a thing once.** "Not anonymous though, this communication isn't
-anonymous" says it twice in one breath. So does a paragraph that describes the
-open problem and then repeats it in the day's `*Could use a hand:*` line: let
-the help line carry it, and keep the paragraph to what shipped.
-
-**One paragraph per day**, under 260 words even if the day produced 18 PRs.
-
-End a day with `*Could use a hand: ...*` when something is genuinely stuck or
-wanted. This is the point of the whole file: it turns a diary into a list a
-colleague can act on.
 
 ## Format
 
 ```markdown
 ## Fri Aug 14
 
-The pier ships. `#26` Changed my mind about placement: not centre-outwards,
-everyone gets a random free spot, so you actually have to search for your
-friends. [...] Wanted a "send hi" button that opens a Slack DM with that person,
-decided it's a whole feature and postponed it.
+- the pier: find-yourself map, quests, sponsors, wildlife `#26`
+- changed my mind on placement: a random free spot each, so you search for
+  your friends
+- sponsor banners on rooftops, sized by tier, never overlapping anyone
+- leg repair I approve in admin rather than something that just happens `#25`
+- a "send hi" button on a card that opens a Slack DM
 
-*From review: `#28` `#36`*
-
-*Could use a hand: that Slack DM deep link. Still want it, still not built.*
+*From review: `#28`*
+*Could use a hand: the Slack DM deep link. I decided it's a whole feature and
+postponed it, still want it.*
 ```
 
-Newest entries go at the **bottom**. PRs are tagged on the sentence that asked
-for them: `` `#43` `` merged, `` `#22 dropped` `` closed, `` `#61 open` `` open.
+**One list of what the person worked on. The PR tag says where it got to**, so
+nothing needs a second list to report an outcome:
 
-**The file's header is two sentences and a byline.** Say what the log is and
-that it's one paragraph per day, then start. Resist explaining the conventions
-inside the file: a reader works out `#22 dropped` and `*From review:*` on
-sight, and a page of preamble is the first thing that makes somebody stop
-reading a document meant to be read in five minutes. The rules on this page are
-for whoever writes the log, not for whoever reads it.
+| tag | means |
+| --- | --- |
+| `` `#26` `` | merged, it's done |
+| `` `#61 open` `` | still in progress |
+| `` `#7 dropped` `` | the PR was closed |
+| no tag | nothing shipped for it |
+
+Read the state off `gh pr list`, never off memory, and tag each PR **exactly
+once**, on the bullet naming the work it came out of. That bullet is often on an
+earlier day than the PR: the ask goes where it was made, and the tag follows the
+ask. Newest entries at the **bottom**.
+
+A merged PR that abandoned the thing is the one case the tag gets wrong on its
+own, so the bullet says it, in words: *gave up on the ocean at any volume*,
+tagged with the PRs that took it out.
+
+## What goes in a bullet
+
+**One ask, one line, under 20 words.** If it needs a second clause to justify
+itself, cut the justification.
+
+**No before-state, no reasoning, no flourish.** The reader knows what the app
+looked like last week and can read the diff for how it changed. Vova's example:
+
+> Our invitation emails were still in last year's plain style when we'd already
+> built the pixel design, so they got dressed properly
+
+is one bullet: `invitation emails in the pixel design`.
+
+**Name the concrete thing.** "Two fields that both mean the name" is unreadable
+a week later; "`name` and `full_name`" is not. A vague noun is the single most
+common way one of these entries goes stale.
+
+**Say where an idea came from** when it wasn't the author's: a reviewer, a
+player, the team. That is the collaboration signal a teammate reads the log for.
+
+**Say a thing once.** Not in a bullet and again in the help line.
+
+Plain and laid back, first person, the way the person actually talks. No
+"leveraged", no "implemented", no "successfully". Prefer the verbs of intent:
+asked, wanted, refused, decided, changed my mind.
+
+## What stays out
+
+Back and forth is the default condition of the work, so narrating it carries no
+information. Cut reviews run, tests written, iterations tried, servers
+restarted, things checked on a phone. A reversal is an ordinary Wanted bullet:
+`changed my mind on placement: everyone gets a random spot`.
+
+Three things earn a tail line instead, because they are what a colleague can act
+on:
+
+- `*Dropped: ...*` — gave up, nothing landed
+- `*Postponed: ...*` — parked it deliberately, still wanted
+- `*From review: `#28`*` — work the agent started and the human never asked for,
+  so the PR is still accounted for
+- `*Could use a hand: ...*` — genuinely stuck or wanted. This is the point of
+  the whole file: it turns a diary into a list a colleague can act on.
+
+**A day stays under 180 words**, even if it produced 18 PRs.
+
+## The file header is two sentences and a byline
+
+Say what the log is and that it is one list a day, then start. Resist
+explaining the conventions inside the file: a reader works out `#22 dropped` and
+`*From review:*` on sight, and a page of preamble is the first thing that makes
+somebody stop reading a document meant to be read in five minutes. The rules on
+this page are for whoever writes the log, not for whoever reads it.
 
 ## Updating (the normal case)
 
 1. `ruby <skill>/extract.rb blocks --repo <repo>` to see the work blocks, then
    `ruby <skill>/extract.rb dump <YYYY-MM-DD> --repo <repo>` for the prompts.
 2. `gh pr list --state all --limit 100 --json number,state,title,createdAt,mergedAt`
-   for what shipped. **Convert those timestamps to local time**; `gh` returns UTC.
-3. Write the paragraph. Append at the bottom.
+   for what shipped and what state it is in. **Convert those timestamps to local time**; `gh` returns UTC.
+3. Write the list. Append at the bottom.
 4. `ruby <skill>/check.rb docs/intent-log.md`.
 
 ## Backfilling a repo for the first time
@@ -121,7 +132,7 @@ These each produced a wrong log before the scripts existed:
   prompts puts a page of skill documentation in the log. They carry
   `isMeta: true`; filter on that rather than on a list of prefixes.
 - **Parallel sessions interleave.** One day may hold three sessions on different
-  branches. They merge into one paragraph; `extract.rb` marks blocks that span
+  branches. They merge into one entry; `extract.rb` marks blocks that span
   more than one source with `[+worktree]`.
 - **The author's memory of dates is a hypothesis.** Check it against the
   transcript before rewriting an entry.
@@ -129,8 +140,10 @@ These each produced a wrong log before the scripts existed:
 ## Verifying
 
 `check.rb` asserts every PR appears exactly once with the right state marker,
-entries run oldest first, and no day runs long. Run it after every write; it
-catches dropped PRs that reading cannot.
+entries run oldest first, every day is a list, no bullet runs to a paragraph,
+and no day runs long. Run it after every write; it
+catches dropped PRs that reading cannot. `--fix` rewraps the file, keeping
+bullets hanging-indented.
 
 ## Capturing as you go
 

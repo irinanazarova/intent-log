@@ -1,210 +1,228 @@
 # Intent log
 
-What I wanted, day by day, and what shipped. Short on purpose: one paragraph a
-day, no matter how many PRs came out of it.
+What I worked on, day by day, tagged with the PRs it produced. One short list a
+day, no matter how many came out of it.
 
-Written by me (Irina) with Claude, reconstructed from my own session prompts.
+Written by me (Irina) with Claude, from my own session prompts.
 
 ---
 
 ## Wed Jul 15-16
 
-First look. Refresh last year's product for this year's conference, sfruby.com
-for context, we're on an 8-bit style now and the characters should be generated
-in it.
+- last year's app refreshed for this year's conference, in an 8-bit style
+- the characters generated in that style too
 
 ## Sun Jul 26
 
-The real brief. Relaunch the app for SF Ruby Startup Conference 2026, 8-bit for
-the UI and the generated images both. Archive last year's ticket holders
-without deleting anything. For people who came last year, reuse the photo they
-already gave us so their card is ready before they show up. The near-black
-background on the card pages had to go, it looked off against our design
-system.
+- relaunch for SF Ruby Startup Conference 2026, 8-bit UI and 8-bit images
+- last year's ticket holders archived, nothing deleted
+- returning attendees' cards made from the photo they already gave us
+- the near-black background off the card pages, it fights our design system
 
 ## Wed Jul 29
 
-One app, two conferences. `#1`
+- one app, two conferences `#1`
 
 ## Thu Jul 30
 
-Wrote the character prompt myself: 16-bit chibi sprite off a style reference,
-tuned so people look good, because nobody shares a card that flatters them
-badly. The cards can vary but the "Join..." wording is a composite overlay for
-sure, we paint it, we don't ask a model for it. Rails security bump lands
-before anything else. `#2`
+- the character prompt is mine: 16-bit chibi sprite off a style reference
+- people must look good in it, nobody shares a card that flatters them badly
+- the "Join..." wording painted by us, never asked of a model
+- the Rails security bump before anything else `#2`
 
 ## Fri Jul 31
 
-Two threads. On the cards: I didn't want people surrounded by money symbols,
-the coins and tickets the model added read as cash, so rubies, hearts and our
-martians instead, and the background moved from clouds to any San Francisco
-scene. `#3` Returning attendees get a card generated from last year's photo
-automatically, before we ever write to them `#4`, and upload screening goes off
-for this crowd, they're ticket holders `#5`. Vova reviewed and said the
-generation code doesn't belong in `app/models/card`, it belongs in
-`app/agents/<event>`, and I had it refactored before building anything else. In
-a separate worktree I laid out where this is going: someone buys a ticket on
-Luma, gets an invitation from us straight away, makes their card, then keeps
-getting tasks and points all the way to the conference, with a gift for whoever
-scores highest. Last year I exported and uploaded a CSV by hand every single
-day, so I asked for real Luma integration, we're on Luma Plus, 82 people
-already hold tickets, plus a profile page where people edit everything except
-their email. `#8` Tried getting the card text into a shaped badge instead of a
-rectangular bar, Steam capsule art as my reference, never landed it
-`#7 dropped`. Brought the review tooling in, the pr-review skill from Solaris
-and palkan's layered-rails skills, so reviews here are held to his conventions
-and not mine.
+- no money on the cards: rubies, hearts and martians, not coins and tickets
+  `#3`
+- backgrounds any San Francisco scene instead of clouds
+- returning attendees' cards generated before we ever write to them `#4`
+- upload screening off, this crowd already holds tickets `#5`
+- Vova: generation code out of `app/models/card` and into `app/agents/<event>`,
+  first
+- the card text in a shaped badge, Steam capsule art as my reference
+  `#7 dropped`
+- real Luma integration, last year I uploaded a CSV by hand every single day
+  `#8`
+- a profile page where people edit everything except their email
+- the arc: Luma ticket, invitation, card, then tasks and points until the
+  conference
+- palkan's layered-rails skills and Solaris' pr-review skill, so reviews follow
+  his conventions
 
 ## Tue Aug 4 - Wed Aug 5
 
-The logo moves from the middle of the card's strip to the top left corner. Last
-year's gallery is preserved on its own public page instead of vanishing, linked
-from the footer, and we reuse the sfruby.com footer with the conference links.
-Rewrote the gallery headline to sell the conference rather than just be cute.
+- the logo from the middle of the card's strip to the top left corner
+- last year's gallery kept on its own public page, linked from the footer
+- the sfruby.com footer with the conference links, reused here
+- a gallery headline that sells the conference rather than being cute
 
 ## Mon Aug 10
 
-Pre-launch. Vova reviewed the Luma work and said enrolling each guest should be
-its own small job, so that went in first. Merge everything, keep 2026 switched
-off, import the real ticket holders, generate their cards and review them in
-admin against a checkerboard so I can see the cutouts before anyone else does
-`#9` `#15`. The game economy: coins and hearts, every accrual and spend
-recorded, quests for publishing and sharing `#10`. The wallet page was 500ing,
-and admin review wanted full-size previews `#12`. The whole thing should feel
-like one app: sign-in without passwords, the same nav and footer everywhere,
-your own card as your home page, conference links in the footer `#14`. People
-invited before go-live keep working links `#16`. Refused the word "veteran" for
-returning attendees, we have actual veterans in the community.
+- merge everything, keep 2026 switched off, import the real ticket holders
+- their cards reviewed in admin against a checkerboard, so I see the cutouts
+  first `#9`
+- coins and hearts, every accrual and spend recorded, quests for publishing and
+  sharing `#10`
+- the wallet page fixed, it was 500ing, and full-size previews in admin review
+  `#12`
+- source photo previews on the card page `#15`
+- one app: passwordless sign-in, the same nav and footer everywhere, my card as
+  home `#14`
+- links sent before go-live keep working `#16`
+- Vova: enrolling each guest is its own small job, in first
+- the word "veteran" off returning attendees, we have actual veterans in the
+  community
 
 *From review: `#11` `#13` `#17`*
 
 ## Tue Aug 11
 
-Went live at about eight in the evening. `#6` Before that: the team said the
-page can't look the same to you and to a stranger, so the two got split, and
-the gallery became one full-size card per row with details in a modal `#19`. A
-public API so sfruby.com can show the newest cards live `#18`. What we share is
-sfruby.com and not us, so the utm tail comes off `#21`. Name, company, role and
-intro go on the card, and the speaker and organizer tags come back off, the
-cards looked busy. Sharing to X, LinkedIn and Bluesky, dropping the hashtag in
-favour of mentioning the conference account. Sharing buttons and a person's own
-social links stop being the same thing, and the whole thing is renamed Pixel
-Card `#20`. Rewrote the invitation email myself, it greeted people twice and
-explained itself, so it's one line about the first quest now. Then a scare: too
-many notifications went out and I thought we'd invited everyone on Luma instead
-of only ticket holders. I asked to pause the sync `#22 dropped`, checked the
-numbers, found most were last year's, and closed it. Added Plausible `#24`.
+- go live: 2026 current, 2025 archived `#6`
+- the team: the page can't look the same to me and to a stranger, so split them
+  `#19`
+- the gallery one full-size card per row, details in a modal
+- a public API so sfruby.com shows the newest cards live `#18`
+- no utm tail, what we share is sfruby.com and not us `#21`
+- name, company, role and intro on the card; speaker and organizer tags off,
+  too busy
+- sharing to X, LinkedIn and Bluesky, mentioning the conference account, no
+  hashtag
+- share buttons kept apart from a person's own links, and the rename to Pixel
+  Card `#20`
+- the invitation email rewritten by me: one line about the first quest, it used
+  to greet twice
+- pausing the Luma sync, I thought we'd invited everyone instead of ticket
+  holders `#22 dropped`
+- Plausible `#24`
 
 *From review: `#23`*
 
 ## Wed Aug 12
 
-Quiet day. Asked for imgproxy on the gallery images. Late at night I dropped an
-isometric painting of San Francisco into the repo, and that started the pier.
+- imgproxy on the gallery images
+- dropped an isometric painting of San Francisco into the repo, late at night
 
 ## Thu Aug 13
 
-I want our pixel people standing on that city: first you find yourself and get
-10 coins, then you go looking for other people. Use the characters we already
-have on production, don't generate new ones. Placement fought me all day,
-characters on roofs, on walls, on top of trees, whole lawns empty, so I gave up
-on working it out and drew the mask of where feet may go by hand. Separately: a
-lot of characters on production have their legs cropped, and I want a pipeline
-that draws the missing legs back without touching the face or anything already
-painted.
+- our pixel people standing on that city: find yourself for 10 coins, then find
+  others
+- the characters already on production, no new ones generated
+- gave up solving placement, drew the mask of where feet may go by hand
+- a pipeline that draws cropped legs back without touching the face
 
 ## Fri Aug 14
 
-The pier ships. `#26` Changed my mind about placement: not centre-outwards,
-everyone gets a random free spot, so you actually have to search for your
-friends. I want to edit the mask myself and re-run. Sponsor banners stand on
-rooftops, sized by tier, Pickaxe biggest, never overlapping each other or
-people. 450 cloned attendees, so I can see a full pier before the real one
-fills. The city should feel alive, so martians in different outfits, a phoenix,
-rubies, and a blimp flying over, and I prepared the artwork myself so placement
-is ours and not a model's. Hover bubbles: sponsors say something their
-marketing team would like, animals say something funny. The leg repair ships as
-something I approve in admin rather than something that just happens `#25`,
-with free recuts for last year's cutouts `#27`. Asked what the pier costs to
-load, which is how images ended up behind imgproxy `#29`. Zoomed the map 2.5x
-so the city is something you scroll into and discover `#30`, and gave it a
-short address to send people to `#31`. A request from the team: when I change
-my name on my profile it should change on the cards I already have, and that's
-just repainting, no model involved `#32`. Wanted a "send hi" button on the card
-modal that opens a Slack DM with that person, decided it's a whole feature and
-postponed it.
+- the pier: find-yourself map, quests, sponsors, wildlife `#26`
+- changed my mind on placement: a random free spot each, so you search for your
+  friends
+- the mask editable by me and re-runnable
+- sponsor banners on rooftops, sized by tier, Pickaxe biggest, never
+  overlapping anyone
+- 450 cloned attendees, so I see a full pier before the real one fills
+- the city alive: martians, a phoenix, rubies, a blimp, on artwork I prepared
+  myself
+- hover bubbles: sponsors say what their marketing would like, animals
+  something funny
+- leg repair I approve in admin rather than something that just happens `#25`
+- free recuts for last year's cutouts `#27`
+- what the pier costs to load, which is how images went behind imgproxy `#29`
+- the map zoomed 2.5x, a city you scroll into `#30`, and a short address `#31`
+- the team: renaming myself repaints the cards I already have `#32`
+- a "send hi" button on a card that opens a Slack DM
 
-*From review: `#28` `#36`*
-
-*Could use a hand: that Slack DM deep link. Still want it, still not built.*
+*From review: `#28`*
+*Could use a hand: the Slack DM deep link. I decided it's a whole feature and
+postponed it, still want it.*
 
 ## Sat Aug 15
 
-I don't want two fields on a person that both mean their name, so `name` and
-`full_name` merge into one `#34`. The blimp is full size and flies over
-everything, a small one doesn't read as real `#33`. The pier gets laid out like
-Google Maps, full screen with the panels collapsed on top of it `#35`. Asked
-what our links look like when pasted in Slack, which turned into og tags on the
-pier `#37` and on the cards `#40`. On mobile there's no hover, so tapping a
-sponsor or an animal shows the bubble first and opens the card on the second
-tap `#38`, modals that overflow get fixed `#39` `#41`, and the city can be
-dragged `#42`. In the evening, the big one: people can move their characters.
-I'd prepared three masks for it, where you can walk, where you walk hidden
-behind buildings and need an x-ray view to be seen, and a few swim routes to
-the ferries, with positions streamed live over AnyCable whispers for up to 450
-people. Turned down the easy version, an arrow pointing you at your target, I
-wanted the hard one. People and creatures greet you automatically when you come
-near, and ghost paths show only while you're walking. `#43` A player told us
-the game wants music, so I asked what we can use legally and free and decided:
-action sounds from a library, each animal makes its own animal's sound, quests
-chime, no background music yet.
+- one field for a person's name, not `name` and `full_name` both `#34`
+- the blimp full size, a small one doesn't read as real `#33`
+- the pier laid out like Google Maps, full screen, panels collapsed on top
+  `#35`
+- what our links look like pasted in Slack, so og tags on the pier `#37` and
+  cards `#40`
+- no hover on a phone: first tap shows a sponsor's bubble, second opens the
+  card `#38`
+- modals that overflow, fixed `#39` `#41`
+- the city can be dragged `#42`
+- people can move their characters; I turned down an arrow pointing at your
+  target `#43`
+- three masks: where you walk, where you walk hidden and need x-ray, swim
+  routes
+- positions streamed live over AnyCable whispers
+- people and creatures greet you when you come near; ghost paths only while
+  walking
+- a player says the game wants music: free library sounds, each animal its own
+
+*From review: `#36`*
 
 ## Sun Aug 16
 
-Walking on a phone: you press on your character and swipe the direction you
-want them to go, lead and speed 300, dropped to 60 on phones `#46` `#47`, and
-your own greeting bubble goes quiet while you're the one walking. Quests become
-one list shown in both places, newest on top `#44`, and the quest-complete
-modal gets tidied, the +1 sat too far from its heart and the button's rounded
-corners broke our design system `#45`. Postponed AnyCable streams history. The
-area you can grab to walk is too small on a tablet, so make it a full circle
-1.5x the character's height. And I want a quest board in admin, every
-participant who accepted with their quests and their balances, so I can see how
-the game is actually going.
+- walking on a phone: press your character and swipe the way you want them to
+  go `#46`
+- lead and speed 300, dropped to 60 on phones; the grab area too small on a
+  tablet `#47`
+- my own greeting bubble quiet while I'm the one walking
+- one quest list shown in both places, newest on top `#44`
+- the +1 sat too far from its heart, and the button's corners broke our design
+  system `#45`
+- a quest board in admin: everyone who accepted, their quests, their balances
+  `#49`
+
+*Postponed: AnyCable streams history.*
 
 ## Mon Aug 17
 
-The quest board ships `#49`. Our invitation emails were still in last year's
-plain style when we'd already built the pixel design, so they got dressed
-properly `#50`. Tweaked the logo myself because SAN FRANCISCO in white
-disappeared on light backgrounds, which meant refreshing the map and both
-walking masks around it and re-running the spots, the ground had changed `#48`.
-sfruby.com needed company and job title from our API `#53`. Then sounds: they
-fire on hover, the sea lions and whale get a water splash, the parrots need
-their true sound, the pelicans had something that isn't a pelican, the human
-"hey" was annoying so I asked for a neutral activation sound instead, and we
-credit Sonic Pi because it's a Ruby tool and that's good for us `#52`. The
-ocean I could not get right at any volume `#55`, so I pulled it out entirely
-`#56`. And chat, which I thought was the only gameplay feature still missing:
-you walk up to somebody, click them, a "say" button, 140 characters, emoji
-allowed, and one simple inbox per person showing who said what in order, both
-sides of it, over AnyCable `#54`.
+- invitation emails in the pixel design `#50`
+- the logo fixed, SAN FRANCISCO in white disappears on light backgrounds `#48`
+- company and job title in the API for sfruby.com `#53`
+- sounds on hover: a splash for the sea lions and the whale, real parrots, a
+  real pelican `#52`
+- the human "hey" replaced by a neutral activation sound, it was annoying
+- Sonic Pi credited, it's a Ruby tool and that's good for us
+- gave up on the ocean at any volume `#55` `#56`
+- chat, the last gameplay piece missing: walk up, click, say 140 characters
+  `#54`
+- one inbox per person, both sides of it, in order, over AnyCable
+- palkan should like PR 54, we need him to
 
 *From review: `#51`*
 
 ## Tue Aug 18
 
-Still no ambient San Francisco background sound, so a rare foghorn instead,
-about once a minute and a bit random `#57`. A leaderboard ranked by coins,
-tucked into the pier footer `#58`. The sound button needed two presses before
-you heard anything, so it says what is true now `#59`. Every heart and coin
-emoji becomes our 8-bit sprites, everywhere `#60`. Came back to the chat and
-asked how private it is: we should never see these in admin or anywhere else,
-so they're encrypted and there's no organizer screen. Not anonymous though: we
-trust attendees and every line carries a name. Positions on production drift
-when they're whispered `#61 open`, and dragging my own character on mobile
-still scrolls the map instead.
+- a coin leaderboard, tucked into the pier footer links `#58`
+- every heart and coin emoji replaced by our 8-bit sprites `#60`
+- chats encrypted and never in Avo; not anonymous, we trust attendees
+- a rare foghorn instead of ambient sound, once a minute or so `#57`
+- the sound button says what is true, it takes two presses `#59`
+- whispered positions drift on production, find out why `#61`
+- dragging my character on a phone scrolls the map `#63`
+- the camera keeps the character centred while walking `#66`
+- quests on the pier only, newest and open on top; pier at root `#68`
+- a quest for talking to five people: send and get a reply `#69`
+- an intent log: 30 PRs in a few days, palkan can't follow that `#62`
+- what was said lands in the chatbox `#64`, the pier's JS tidied `#65`
+- the browser's own state kept through a render `#67`
 
 *Could use a hand: an ambient background sound for the pier. I've tried twice
 and nothing feels right.*
+
+## Wed Aug 19
+
+- Svyat got a 422 clicking his card on production, pull the logs `#70`
+- the production image built only when something it's made of changed `#71`
+- a shared card link that is short and previews as the card, `/?card=<slug>`
+  `#72`
+- share the game rather than the conference site, it links out to the
+  conference anyway
+- our admin link to a person is their sign-in token; make it a public profile
+- Rosa's page says "talks on RubyEvents" without saying how many
+- one canonical address per person, `/e/2026-bits/<slug>`, the pier behind
+  their card `#73`
+- `/e/2026-bits/pier/<slug>` redirects to it, and social sharing uses it
+- logged in as Vova, walked up to Irina and couldn't send: "did not reach the
+  Pier" `#74`
+- the og tags checked: the inspector flags a long title and a short description
+  `#75`
+- Vova on this log: fewer words, one list a day, status read off the PR
