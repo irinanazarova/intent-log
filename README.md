@@ -12,16 +12,27 @@ what was intentional and what was just how it came out.
 ## How it works
 
 One list a day, in order. Each line is something we worked on, and the PR tag
-says where it got to.
+says where it got to. A real day, from the example below:
 
 ```markdown
 ## Fri Aug 14
 
 - the pier: find-yourself map, quests, sponsors, wildlife `#26`
-- changed my mind on placement: a random free spot each, so you search for
-  your friends
-- sponsor banners on rooftops, sized by tier, never overlapping anyone
+- changed my mind on placement: a random free spot each, so you search for your
+  friends
+- the mask editable by me and re-runnable
+- sponsor banners on rooftops, sized by tier, Pickaxe biggest, never
+  overlapping anyone
+- 450 cloned attendees, so I see a full pier before the real one fills
+- the city alive: martians, a phoenix, rubies, a blimp, on artwork I prepared
+  myself
+- hover bubbles: sponsors say what their marketing would like, animals
+  something funny
 - leg repair I approve in admin rather than something that just happens `#25`
+- free recuts for last year's cutouts `#27`
+- what the pier costs to load, which is how images went behind imgproxy `#29`
+- the map zoomed 2.5x, a city you scroll into `#30`, and a short address `#31`
+- the team: renaming myself repaints the cards I already have `#32`
 - a "send hi" button on a card that opens a Slack DM
 
 *From review: `#28`*
@@ -34,16 +45,18 @@ postponed it, still want it.*
 - `` `#7 dropped` `` — the PR was closed
 - no tag — nothing shipped for it
 
-A line with no tag stays visibly missing, which is what `*Could use a hand:*`
-picks up.
+The last line of that day has no tag, so a month later the Slack DM button is
+still visibly missing, and `*Could use a hand:*` says so out loud.
 
-[`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md) is a real one: four weeks
-of building a conference game, 75 PRs, 1,444 words.
+[`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md)
+is the whole thing: four weeks of building a conference game, 75 PRs, 1,444
+words.
 
 ## Install
 
 ```sh
-git clone https://github.com/irinanazarova/intent-log ~/.claude/skills/intent-log
+git clone https://github.com/irinanazarova/intent-log
+cp -r intent-log/skills/intent-log ~/.claude/skills/
 ```
 
 Then `/intent-log` in any repo, in Claude Code. It writes `docs/intent-log.md`.
@@ -51,15 +64,16 @@ Then `/intent-log` in any repo, in Claude Code. It writes `docs/intent-log.md`.
 ## What the scripts do
 
 `SKILL.md` holds the rules for writing an entry. The scripts do the parts that
-shouldn't be a judgment call.
+shouldn't be a judgment call. The skill runs them itself; to run them by hand,
+do it from `~/.claude/skills/intent-log`.
 
 **`extract.rb` — pulls the day's prompts out of the transcripts**, grouped into
 work blocks, so an entry is written from what was actually asked for rather than
 from memory. It reads only your own turns, never the assistant's.
 
 ```sh
-ruby skills/intent-log/extract.rb blocks --repo ~/code/myapp           # what the work blocks were
-ruby skills/intent-log/extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
+ruby extract.rb blocks --repo ~/code/myapp           # what the work blocks were
+ruby extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
 ```
 
 Three things it handles, each of which got the log wrong when done by hand:
@@ -75,8 +89,8 @@ prose, no bullet runs past 20 words, no day runs long, and a heading's weekday
 is the real one.
 
 ```sh
-ruby skills/intent-log/check.rb docs/intent-log.md          # invariants
-ruby skills/intent-log/check.rb docs/intent-log.md --fix    # rewrap
+ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name
+ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name --fix  # rewrap
 ```
 
 **`intent-stage.rb` — saves each session's prompts as you go**, into
@@ -84,7 +98,7 @@ ruby skills/intent-log/check.rb docs/intent-log.md --fix    # rewrap
 instead of archaeology weeks later. It's a `SessionEnd` hook:
 
 ```sh
-cp skills/intent-log/intent-stage.rb ~/code/myapp/.claude/hooks/
+cp ~/.claude/skills/intent-log/intent-stage.rb ~/code/myapp/.claude/hooks/
 ```
 
 ```json
