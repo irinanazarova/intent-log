@@ -37,7 +37,7 @@ postponed it, still want it.*
 A line with no tag stays visibly missing, which is what `*Could use a hand:*`
 picks up.
 
-[`example/sfruby-cards.md`](example/sfruby-cards.md) is a real one: four weeks
+[`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md) is a real one: four weeks
 of building a conference game, 75 PRs, 1,444 words.
 
 ## Install
@@ -58,8 +58,8 @@ work blocks, so an entry is written from what was actually asked for rather than
 from memory. It reads only your own turns, never the assistant's.
 
 ```sh
-ruby extract.rb blocks --repo ~/code/myapp           # what the work blocks were
-ruby extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
+ruby skills/intent-log/extract.rb blocks --repo ~/code/myapp           # what the work blocks were
+ruby skills/intent-log/extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
 ```
 
 Three things it handles, each of which got the log wrong when done by hand:
@@ -75,8 +75,8 @@ prose, no bullet runs past 20 words, no day runs long, and a heading's weekday
 is the real one.
 
 ```sh
-ruby check.rb docs/intent-log.md          # invariants
-ruby check.rb docs/intent-log.md --fix    # rewrap
+ruby skills/intent-log/check.rb docs/intent-log.md          # invariants
+ruby skills/intent-log/check.rb docs/intent-log.md --fix    # rewrap
 ```
 
 **`intent-stage.rb` — saves each session's prompts as you go**, into
@@ -84,7 +84,7 @@ ruby check.rb docs/intent-log.md --fix    # rewrap
 instead of archaeology weeks later. It's a `SessionEnd` hook:
 
 ```sh
-cp intent-stage.rb ~/code/myapp/.claude/hooks/
+cp skills/intent-log/intent-stage.rb ~/code/myapp/.claude/hooks/
 ```
 
 ```json

@@ -1,3 +1,8 @@
+---
+name: intent-log
+description: Keep docs/intent-log.md, one short list per day of what a person worked on, each line tagged with the PR it produced, so a teammate can see where the work got to without reading every pull request. Use when asked to write, update, backfill, or reconstruct an intent log, or to catch a colleague up on a burst of agent-assisted work.
+---
+
 # Intent log
 
 A team ships faster than it can review. The code is in git; what the person
