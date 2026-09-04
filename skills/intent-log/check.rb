@@ -9,7 +9,7 @@ require "date"
 require "optparse"
 
 options = {log: "docs/intent-log.md", year: Date.today.year, max_words: 400,
-           max_bullet: 20, width: 79, fix: false, repo: nil}
+           max_bullet: 20, width: 79, fix: false, repo: nil, dir: "docs/intent"}
 parser = OptionParser.new do |opts|
   opts.banner = "usage: check.rb [docs/intent-log.md] [options]"
   opts.on("--year YEAR", Integer, "year the headings belong to") { options[:year] = _1 }
@@ -17,6 +17,7 @@ parser = OptionParser.new do |opts|
   opts.on("--max-bullet N", Integer, "longest a bullet may run (default: 20)") { options[:max_bullet] = _1 }
   opts.on("--width N", Integer, "wrap width (default: 79)") { options[:width] = _1 }
   opts.on("--repo OWNER/NAME", "repo the PRs belong to (default: cwd)") { options[:repo] = _1 }
+  opts.on("--dir PATH", "per-person sources, if any (default: docs/intent)") { options[:dir] = _1 }
   opts.on("--fix", "rewrap the file rather than report on it") { options[:fix] = true }
 end
 parser.parse!
@@ -72,7 +73,7 @@ end
 
 def pull_requests(repo)
   target = repo ? "--repo #{repo}" : ""
-  raw = `gh pr list #{target} --state all --limit 500 --json number,state,title`
+  raw = `gh pr list #{target} --state all --limit 500 --json number,state,title,author`
   abort "gh pr list failed" unless $?.success?
   JSON.parse(raw).to_h { [_1["number"], _1] }
 end
@@ -95,6 +96,15 @@ def heading_days(heading, year)
   end
 end
 
+# A composed day carries one `### Name` section per author, and a day with a
+# single author carries none. Either way the word cap is one person's.
+def author_sections(text)
+  parts = text.split(/^### +(.+)$/)
+  return [[nil, text]] if parts.size == 1
+
+  parts[1..].each_slice(2).map { |name, body| [name.strip, body.to_s] }
+end
+
 # Bullets, reassembled from their continuation lines.
 def bullets(text)
   text.split("\n\n").flat_map { units(_1) }.filter_map { _1.delete_prefix("- ") if _1.start_with?("- ") }
@@ -113,6 +123,7 @@ body = source.include?("\n## ") ? source[source.index("\n## ")..] : source
 known = pull_requests(options[:repo])
 failures = []
 
+unlogged = Hash.new { |h, k| h[k] = [] }
 tagged = Hash.new { |h, k| h[k] = [] }
 body.scan(/#(\d+)(?: (dropped|open))?/) { |number, marker| tagged[number.to_i] << marker }
 
@@ -120,7 +131,10 @@ expected = {"MERGED" => nil, "CLOSED" => "dropped", "OPEN" => "open"}
 known.sort.each do |number, pr|
   markers = tagged[number]
   if markers.empty?
-    failures << "##{number} (#{pr["state"].downcase}) is in no entry: #{pr["title"]}"
+    who = pr.dig("author", "login")
+    unlogged[who] << number if who
+    by = who ? " by #{who}" : ""
+    failures << "##{number} (#{pr["state"].downcase})#{by} is in no entry: #{pr["title"]}"
     next
   end
 
@@ -148,8 +162,13 @@ dated.each_cons(2) do |(_, _, earlier), (heading, _, later)|
   failures << "'#{heading}' comes after #{earlier}; entries run oldest first" if later < earlier
 end
 dated.each do |heading, text, _|
-  words = text.gsub(/^[-*]\s*/, "").split.size
-  failures << "'#{heading}' is #{words} words; keep a day under #{options[:max_words]}" if words > options[:max_words]
+  author_sections(text).each do |who, section|
+    words = section.gsub(/^[-*#]\s*/, "").split.size
+    next unless words > options[:max_words]
+
+    whose = who ? "#{who}'s half of '#{heading}'" : "'#{heading}'"
+    failures << "#{whose} is #{words} words; keep a day under #{options[:max_words]}"
+  end
 
   failures << "'#{heading}' is prose, not a list" if bullets(text).empty?
 
@@ -163,6 +182,23 @@ dated.each do |heading, text, _|
     next unless size > options[:max_bullet]
 
     failures << "'#{heading}' has a #{size}-word bullet; keep one under #{options[:max_bullet]}: #{bullet[0, 60]}..."
+  end
+end
+
+# A teammate who shipped and wrote nothing is the failure a team log has that a
+# solo one cannot: the entries left are all correct, and a person is missing.
+if Dir.exist?(options[:dir])
+  compose = File.join(__dir__, "compose.rb")
+  if File.exist?(compose)
+    `ruby #{compose} --dir #{options[:dir]} --out #{options[:log]} --year #{options[:year]} --check 2>&1`
+    failures << "#{options[:log]} is out of date with #{options[:dir]}; run compose.rb" unless $?.success?
+  end
+
+  unlogged.each do |who, numbers|
+    next if who.end_with?("[bot]")
+    next if File.exist?(File.join(options[:dir], "#{who}.md"))
+
+    failures << "#{who} has #{numbers.size} PR(s) here and no #{options[:dir]}/#{who}.md"
   end
 end
 

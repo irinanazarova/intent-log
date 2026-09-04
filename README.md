@@ -74,6 +74,49 @@ out; a bullet with nothing to say under it stays one line.
 is the whole thing: four weeks of building a conference game, 75 PRs, 1,444
 words.
 
+## Two people, or ten
+
+Prompts never leave the machine they were typed on, so nobody can write anybody
+else's entry. Everything below follows from that.
+
+**Each person owns `docs/intent/<github-login>.md`** and appends only to their
+own. Two people appending to the bottom of one shared file conflict on every
+commit that shares a day; separate files cannot. The name is the GitHub login so
+that `gh pr list` ties a PR to whoever owed the entry for it.
+
+**`compose.rb` merges them into `docs/intent-log.md`**, which stays the one file
+you read and link, and which is generated rather than edited.
+
+```sh
+ruby compose.rb                 # docs/intent/*.md -> docs/intent-log.md
+ruby compose.rb --check         # exit 1 if the log is behind its sources
+```
+
+**A day written by one person gets no byline**, so a solo log composes to
+exactly the file it already had: one author is the degenerate case of ten, not a
+second format. A day with two or more gets a heading each, and the length limit
+applies to one person's day rather than the whole team's.
+
+```markdown
+## Thu Sep 3
+
+### Irina
+
+- stop policing how far a step came `#119`
+
+### Vova
+
+- the queue database was throwing busy timeouts all day `#87`
+```
+
+**The `*Could use a hand:*` lines are lifted to the top of the composed log**,
+each with a name and a date. At ten people a day is ten lists, and the one line
+somebody can act on is the first thing to get buried.
+
+**`check.rb` names a teammate who shipped and logged nothing.** That is the
+failure a team log has and a solo one cannot: every entry that is there is
+correct, and a person is missing.
+
 ## Install
 
 ```sh
@@ -115,18 +158,34 @@ ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name
 ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name --fix  # rewrap
 ```
 
+**`compose.rb` — merges the per-person files into the log you read.** Skip it
+in a repo where one person writes everything and there is no `docs/intent/`.
+
 **`intent-stage.rb` — saves each session's prompts as you go**, into
 `.intent/staging/<date>.jsonl`, so the entry is written from fresh material
-instead of archaeology weeks later. It's a `SessionEnd` hook:
+instead of archaeology weeks later. It's a `SessionEnd` hook.
+
+**`intent-nag.rb` — says when the log has fallen behind**, because staging runs
+itself and the write-up doesn't. The log this skill was built against lapsed for
+16 days and 62 PRs while the hook beside it staged every one of those days
+perfectly; nothing noticed because nothing was looking. It's a `Stop` hook that
+counts the staged days the log hasn't accounted for and asks for them at three
+or more (`INTENT_NAG_DAYS`), at most once a day, reading your own file so a
+teammate logging today doesn't answer for you.
 
 ```sh
-cp ~/.claude/skills/intent-log/intent-stage.rb ~/code/myapp/.claude/hooks/
+cp ~/.claude/skills/intent-log/intent-{stage,nag}.rb ~/code/myapp/.claude/hooks/
 ```
 
 ```json
-{"hooks": {"SessionEnd": [{"hooks": [
-  {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-stage.rb\"", "timeout": 15}
-]}]}}
+{"hooks": {
+  "SessionEnd": [{"hooks": [
+    {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-stage.rb\"", "timeout": 15}
+  ]}],
+  "Stop": [{"hooks": [
+    {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-nag.rb\"", "timeout": 15}
+  ]}]
+}}
 ```
 
 Put it in `.claude/settings.local.json` rather than the committed

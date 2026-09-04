@@ -141,8 +141,51 @@ this page are for whoever writes the log, not for whoever reads it.
    `ruby <skill>/extract.rb dump <YYYY-MM-DD> --repo <repo>` for the prompts.
 2. `gh pr list --state all --limit 100 --json number,state,title,createdAt,mergedAt`
    for what shipped and what state it is in. **Convert those timestamps to local time**; `gh` returns UTC.
-3. Write the list. Append at the bottom.
-4. `ruby <skill>/check.rb docs/intent-log.md`.
+3. Write the list. Append at the bottom of your own `docs/intent/<login>.md`,
+   or of `docs/intent-log.md` where a repo keeps no per-person files.
+4. `ruby <skill>/compose.rb`, if there are per-person files.
+5. `ruby <skill>/check.rb docs/intent-log.md`.
+
+## A team writes one file each
+
+**Nobody can write anybody else's entry.** `extract.rb` reads
+`~/.claude/projects/` on the machine it runs on, and staging is gitignored
+because a prompt carries whatever was pasted into it: the staging this skill was
+built against holds a live `/c/<token>` sign-in link and a production console
+session. The prompts never travel, so each person writes their own days and
+that is the constraint the rest of this follows from.
+
+**Each person owns `docs/intent/<github-login>.md` and appends only to it.** Two
+people appending to the bottom of one file conflict on every commit that shares
+a day: friction at two, a conflict per person per day at ten. Separate files
+cannot. The name is the GitHub login because `gh pr list` returns one, so
+`check.rb` can say whose entry a PR is missing from without being handed a
+mapping.
+
+**`compose.rb` merges them into `docs/intent-log.md`**, which stays the file a
+teammate reads and links, and which is generated: edit your own, never that one.
+A conflict in it is settled by running `compose.rb` again rather than by hand.
+
+**A day with one author gets no byline**, so a solo log composes to exactly the
+file it already had. One author is the degenerate case of ten rather than a
+second format, which is why there is nothing to migrate and nothing to choose
+between. A day with two or more gets a `### Name` each, and the word cap is one
+person's day rather than the whole team's.
+
+**A `*Could use a hand:*` line is lifted to the top of the composed log**, with
+the name and the date beside it. At ten people a day is ten lists and the one
+line in it somebody can act on is the one that gets buried, which is the whole
+point of the file. It stays until whoever wrote it deletes it, nothing else
+knowing it was answered.
+
+**A teammate who ships and writes nothing is what `check.rb` gains here**, and
+it is the failure a team log has that a solo one cannot: every entry present is
+correct and a person is missing. It names an author with PRs and no file of
+their own, and it refuses a composed log that is behind its sources, so a day
+written and never composed is caught rather than shipped.
+
+The display name is the first `# Irina` line of a person's file, and
+`docs/intent/_header.md` is the composed header if it exists.
 
 ## Backfilling a repo for the first time
 
@@ -194,13 +237,29 @@ so the daily entry is written from fresh material rather than archaeology. It
 also sidesteps the timezone and worktree traps, because a session knows its own
 transcript and cwd.
 
-Register it per-person in `.claude/settings.local.json`, never in the committed
+**`intent-nag.rb` is the other half of that, and the reason this file needs
+one.** Staging runs itself and the write-up does not, so a log lapses in
+silence: the one this skill was built against ran from Aug 18 to Sep 3, 62 PRs,
+while the hook beside it staged every one of those days perfectly. Nothing
+noticed because nothing was looking. It is a `Stop` hook that counts the staged
+days the log has not accounted for and hands them back at three or more
+(`INTENT_NAG_DAYS`), reading your own file so a teammate logging today does not
+answer for you. It marks the attempt before it makes it, so a session that says
+no is not asked twice, and it fails open on everything else: no staging, no log,
+no `gh` — all exit 0.
+
+Register both per-person in `.claude/settings.local.json`, never in the committed
 `.claude/settings.json`, so nobody inherits a hook they did not ask for:
 
 ```json
-{"hooks": {"SessionEnd": [{"hooks": [
-  {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-stage.rb\"", "timeout": 15}
-]}]}}
+{"hooks": {
+  "SessionEnd": [{"hooks": [
+    {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-stage.rb\"", "timeout": 15}
+  ]}],
+  "Stop": [{"hooks": [
+    {"type": "command", "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/intent-nag.rb\"", "timeout": 15}
+  ]}]
+}}
 ```
 
 Install it only when asked.
