@@ -153,6 +153,12 @@ the right state marker, entries run oldest first, each day is a list rather than
 prose, no bullet runs past 20 words, no day runs long, and a heading's weekday
 is the real one.
 
+Headings carry no year, so the first one names its own (`## Wed Jul 15-16,
+2026`) and the rest carry it forward until another names one. Without that a log
+is dated to whatever year it's read in, and every weekday in it goes wrong the
+January after it was written; `check.rb` asks for the anchor and `compose.rb`
+refuses a day that goes backwards without one.
+
 ```sh
 ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name
 ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name --fix  # rewrap

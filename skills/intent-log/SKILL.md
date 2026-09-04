@@ -49,6 +49,15 @@ A merged PR that abandoned the thing is the one case the tag gets wrong on its
 own, so the bullet says it, in words: *gave up on the ocean at any volume*,
 tagged with the PRs that took it out.
 
+**A heading carries no year, so the first one names its own**: `## Wed Jul
+15-16, 2026`. Every heading after it carries that year forward until another
+names one, and the January that opens a new year names itself, `## Fri Jan 1,
+2027`. A log that anchors nothing is dated to whatever year it is *read* in, so
+from the January after it was written every weekday in it is wrong and the
+entries sort into the wrong order. `compose.rb` refuses a day that goes
+backwards without naming a year rather than guessing whether it is the new year
+or a misordering.
+
 ## What goes in a bullet
 
 **One ask, one line, under 20 words.** The bullet is the index. If it needs a
@@ -220,6 +229,10 @@ These each produced a wrong log before the scripts existed:
   more than one source with `[+worktree]`.
 - **The author's memory of dates is a hypothesis.** Check it against the
   transcript before rewriting an entry.
+- **A year is only in a heading if somebody wrote it there.** Both scripts fall
+  back to the current year, which is right while a log is being kept and wrong
+  every January after, so the first entry names its year and `check.rb` asks for
+  it when it does not.
 
 ## Verifying
 

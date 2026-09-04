@@ -31,8 +31,9 @@ end
 def logged_through(path)
   return nil unless path && File.exist?(path)
 
+  year = nil
   File.read(path).scan(/^## +(.+)$/).flatten.filter_map do |heading|
-    year = heading[/\b(20\d{2})\b/, 1]&.to_i || Date.today.year
+    year = heading[/\b(20\d{2})\b/, 1]&.to_i || year || Date.today.year
     heading.scan(/[A-Z][a-z]{2} +\d{1,2}/).filter_map { heading_date(_1, year) }.max
   end.max
 end

@@ -88,6 +88,18 @@ def heading_date(heading, year)
   Date.new(year, month, match[2].to_i) if month
 end
 
+# A heading names a weekday and a date but never a year, so the year is carried
+# forward from the last heading that named one. Without an anchor a log read in
+# January dates its whole first year to the new one. See SKILL.md.
+def carry_years(headings, fallback)
+  year = nil
+  headings.map do |heading|
+    named = heading[/\b(20\d{2})\b/, 1]&.to_i
+    year = named || year || fallback
+    [heading, year, named]
+  end
+end
+
 # Every "Wed Jul 15" in a heading, so a range heading is checked at both ends.
 def heading_days(heading, year)
   heading.scan(/([A-Z][a-z]{2}) +([A-Z][a-z]{2}) +(\d{1,2})/).filter_map do |weekday, name, day|
@@ -157,11 +169,28 @@ body.lines.each.with_index(1) do |line, number|
 end
 
 # entries run oldest first, hold lists rather than prose, and stay short
-dated = entries(body).filter_map { |heading, text| [heading, text, heading_date(heading, options[:year])] if heading_date(heading, options[:year]) }
-dated.each_cons(2) do |(_, _, earlier), (heading, _, later)|
-  failures << "'#{heading}' comes after #{earlier}; entries run oldest first" if later < earlier
+found = entries(body).select { heading_date(_1.first, options[:year]) }
+carried = carry_years(found.map(&:first), options[:year])
+dated = found.zip(carried).map do |(heading, text), (_, year, named)|
+  [heading, text, heading_date(heading, year), year, named]
 end
-dated.each do |heading, text, _|
+
+if dated.any? && dated.first[4].nil?
+  failures << "'#{dated.first[0]}' names no year; write it as " \
+    "'#{dated.first[0]}, #{dated.first[3]}' so the log still sorts next January"
+end
+
+dated.each_cons(2) do |(_, _, earlier, _, _), (heading, _, later, _, named)|
+  next if later >= earlier
+
+  failures << if named
+    "'#{heading}' comes after #{earlier}; entries run oldest first"
+  else
+    "'#{heading}' goes back before #{earlier}; name its year, as " \
+      "'#{heading}, #{earlier.year + 1}', or put the entry in order"
+  end
+end
+dated.each do |heading, text, _, year, _|
   author_sections(text).each do |who, section|
     words = section.gsub(/^[-*#]\s*/, "").split.size
     next unless words > options[:max_words]
@@ -172,7 +201,7 @@ dated.each do |heading, text, _|
 
   failures << "'#{heading}' is prose, not a list" if bullets(text).empty?
 
-  heading_days(heading, options[:year]).each do |weekday, date|
+  heading_days(heading, year).each do |weekday, date|
     real = date.strftime("%a")
     failures << "'#{heading}' calls #{date} #{weekday}; it was a #{real}" unless weekday == real
   end

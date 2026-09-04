@@ -62,15 +62,33 @@ def heading_date(heading, year)
   Date.new(year, month, match[2].to_i) if month
 end
 
-def entries_in(path, year)
+# A heading names a weekday and a date but never a year, so the year is carried
+# forward from the last heading that named one. Without an anchor a log read in
+# January dates its whole first year to the new one. See SKILL.md.
+def entries_in(path, fallback)
   source = File.read(path)
   key = File.basename(path, ".md")
   display = source[/\A\s*#\s+(.+)$/, 1]&.strip || key
+  year = nil
+
+  previous = nil
 
   source.split(/^## +(.+)$/)[1..].to_a.each_slice(2).filter_map do |heading, text|
     heading = heading.strip
+    named = heading[/\b(20\d{2})\b/, 1]&.to_i
+    year = named || year || fallback
     date = heading_date(heading, year)
-    Entry.new(date, heading, key, display, text.to_s.strip) if date
+    next unless date
+
+    # A day that goes backwards is either the new year or a misordering, and
+    # guessing puts a silently wrong date on it either way.
+    if previous && date < previous && named.nil?
+      abort "#{path}: '#{heading}' goes back before #{previous}. Name its " \
+        "year, as '#{heading}, #{previous.year + 1}', or put it in order."
+    end
+    previous = date
+
+    Entry.new(date, heading, key, display, text.to_s.strip)
   end
 end
 
