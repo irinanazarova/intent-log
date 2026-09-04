@@ -80,6 +80,14 @@ common way one of these entries goes stale.
 **Say where an idea came from** when it wasn't the author's: a reviewer, a
 player, the team. That is the collaboration signal a teammate reads the log for.
 
+**Name colleagues, and not the people using the thing.** A reviewer and a
+teammate are named because the log is partly addressed to them; whoever hit the
+bug is "a player". A log outlives the week it was written in and gets read
+outside the team — this repo publishes one as its own example — and somebody
+named beside a bug they hit, or a limit they took all of, did not agree to
+that. A page or a record is not a person: "Rosa's RubyEvents line" names which
+page was wrong and stays.
+
 **Say a thing once.** Not in a bullet and again in the help line.
 
 Plain and laid back, first person, the way the person actually talks. No

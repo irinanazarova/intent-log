@@ -219,8 +219,15 @@ end
 if Dir.exist?(options[:dir])
   compose = File.join(__dir__, "compose.rb")
   if File.exist?(compose)
-    `ruby #{compose} --dir #{options[:dir]} --out #{options[:log]} --year #{options[:year]} --check 2>&1`
-    failures << "#{options[:log]} is out of date with #{options[:dir]}; run compose.rb" unless $?.success?
+    said = `ruby #{compose} --dir #{options[:dir]} --out #{options[:log]} --year #{options[:year]} --check 2>&1`
+    # compose refuses an ambiguous heading with its own reason, and the entry
+    # it names is one this file cannot see: it reads the composed log, which
+    # a stale one does not carry yet.
+    unless $?.success?
+      failures << "#{options[:log]} is out of date with #{options[:dir]}; run compose.rb"
+      refusal = said.lines.map(&:strip).reject(&:empty?).last
+      failures << refusal if refusal && !refusal.start_with?(options[:log])
+    end
   end
 
   unlogged.each do |who, numbers|

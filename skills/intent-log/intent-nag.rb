@@ -18,7 +18,7 @@
 require "json"
 require "date"
 
-BEHIND = Integer(ENV.fetch("INTENT_NAG_DAYS", 3))
+BEHIND = Integer(ENV["INTENT_NAG_DAYS"], exception: false) || 3
 
 def heading_date(heading, year)
   match = heading.match(/([A-Z][a-z]{2}) +(\d{1,2})/)
@@ -68,10 +68,11 @@ begin
   exit 0 if staged.empty?
 
   mine = author(root)
+  team = File.directory?(File.join(root, "docs", "intent"))
   own = mine && File.join(root, "docs", "intent", "#{mine}.md")
   composed = File.join(root, "docs", "intent-log.md")
   # a repo that keeps no log is not one to nag about
-  exit 0 unless (own && File.exist?(own)) || File.exist?(composed)
+  exit 0 unless team || File.exist?(composed)
 
   through = logged_through(own) || logged_through(composed)
   behind = staged.select { (through.nil? || _1 > through) && _1 < Date.today }
@@ -85,7 +86,10 @@ begin
 
   days = behind.sort
   span = "#{days.first.strftime("%b %-d")} to #{days.last.strftime("%b %-d")}"
-  where = own && File.exist?(own) ? "docs/intent/#{mine}.md" : "docs/intent-log.md"
+  # where a team keeps entries is one file per person, and the composed log is
+  # generated, so somebody with no file yet is sent to make theirs rather than
+  # to edit the one a commit would refuse anyway
+  where = mine && team ? "docs/intent/#{mine}.md" : "docs/intent-log.md"
   warn <<~TEXT
     The intent log is #{days.size} days behind: #{span} are staged and
     unwritten. Write them from .intent/staging/ into
