@@ -8,12 +8,12 @@ require "json"
 require "date"
 require "optparse"
 
-options = {log: "docs/intent-log.md", year: Date.today.year, max_words: 180,
+options = {log: "docs/intent-log.md", year: Date.today.year, max_words: 400,
            max_bullet: 20, width: 79, fix: false, repo: nil}
 parser = OptionParser.new do |opts|
   opts.banner = "usage: check.rb [docs/intent-log.md] [options]"
   opts.on("--year YEAR", Integer, "year the headings belong to") { options[:year] = _1 }
-  opts.on("--max-words N", Integer, "longest a day may run (default: 180)") { options[:max_words] = _1 }
+  opts.on("--max-words N", Integer, "longest a day may run (default: 400)") { options[:max_words] = _1 }
   opts.on("--max-bullet N", Integer, "longest a bullet may run (default: 20)") { options[:max_bullet] = _1 }
   opts.on("--width N", Integer, "wrap width (default: 79)") { options[:width] = _1 }
   opts.on("--repo OWNER/NAME", "repo the PRs belong to (default: cwd)") { options[:repo] = _1 }
@@ -22,8 +22,12 @@ end
 parser.parse!
 options[:log] = ARGV.shift if ARGV.any?
 
-# A line that opens its own unit: a bullet, an italic tail, or a section label.
-OPENER = /\A(?:- |\*|[A-Z][A-Za-z ]*:\s*\z)/
+# A line that opens its own unit: a bullet, a **why:** sub-line under one, an
+# italic tail, or a section label.
+OPENER = /\A(?:- |\s*\*\*|\*|[A-Z][A-Za-z ]*:\s*\z)/
+
+# A sub-line reasons under the bullet above it and is indented to say so.
+SUBLINE = /\A\s*\*\*/
 
 # A backticked span is one token: `#7 dropped` must never break across lines.
 def wrap(text, width)
@@ -49,6 +53,7 @@ end
 def rewrap_units(block, width)
   units(block).map do |unit|
     next "- " + wrap(unit.delete_prefix("- "), width - 2).gsub("\n", "\n  ") if unit.start_with?("- ")
+next "  " + wrap(unit.strip, width - 2).gsub("\n", "\n  ") if unit.match?(SUBLINE)
 
     wrap(unit, width)
   end.join("\n")

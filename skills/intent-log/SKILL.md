@@ -20,6 +20,9 @@ chronological order, tagged with PR numbers.
   your friends
 - sponsor banners on rooftops, sized by tier, never overlapping anyone
 - leg repair I approve in admin rather than something that just happens `#25`
+  **why:** characters generated on production came back with their legs cut off
+  **I decided:** I approve each repair rather than have one happen to a card I
+  never looked at, and last year's bad cutouts get a free recut
 - a "send hi" button on a card that opens a Slack DM
 
 *From review: `#28`*
@@ -48,11 +51,13 @@ tagged with the PRs that took it out.
 
 ## What goes in a bullet
 
-**One ask, one line, under 20 words.** If it needs a second clause to justify
-itself, cut the justification.
+**One ask, one line, under 20 words.** The bullet is the index. If it needs a
+second clause to justify itself, the justification goes on a `**why:**`
+sub-line under it rather than into the bullet.
 
-**No before-state, no reasoning, no flourish.** The reader knows what the app
-looked like last week and can read the diff for how it changed. Vova's example:
+**No before-state and no flourish in the bullet itself.** The reader knows what
+the app looked like last week and can read the diff for how it changed. Vova's
+example:
 
 > Our invitation emails were still in last year's plain style when we'd already
 > built the pixel design, so they got dressed properly
@@ -72,6 +77,36 @@ Plain and laid back, first person, the way the person actually talks. No
 "leveraged", no "implemented", no "successfully". Prefer the verbs of intent:
 asked, wanted, refused, decided, changed my mind.
 
+## The sub-lines, and what they are for
+
+Svyat reviews a PR and cannot tell the human's premise from the model's
+additions: five libraries, three models and a refactor into jobs all read the
+same in a diff. **The log answers that by recording human decisions only.**
+What somebody asked for is here; anything in the diff that is not here was the
+model's idea. Nothing needs to say so, and nothing needs to be guessed at.
+
+Two sub-lines carry the reasoning, indented two spaces under the bullet they
+belong to, neither of them mandatory:
+
+- `**why:**` carries the state of the world that made the ask. The bug seen,
+  the thing that read wrong, the question asked before the work started.
+- `**I decided:**` carries the call the human made inside the work, above all
+  one that closed off an alternative: a number picked, a check dropped, a
+  shape turned down.
+
+**A sub-line never cites a PR number.** `check.rb` counts every `#12` in an
+entry and a second mention reads as the same PR tagged twice. Name the work
+("his review on the Luma PR") rather than its number.
+
+**Every sub-line is read off the prompts, never inferred from the diff.**
+`extract.rb dump` is what the human actually typed. A decision you cannot
+point at a prompt for is one the model made, and it stays out. A bullet with
+nothing to say under it stays one line.
+
+**Write the reasoning in the human's own terms, not the code's.** "the two
+positions disagreed and a reply came back refused" is what was wanted; "unified
+the reach check in `Pier::SayForm`" is what the diff already says.
+
 ## What stays out
 
 Back and forth is the default condition of the work, so narrating it carries no
@@ -89,7 +124,8 @@ on:
 - `*Could use a hand: ...*` — genuinely stuck or wanted. This is the point of
   the whole file: it turns a diary into a list a colleague can act on.
 
-**A day stays under 180 words**, even if it produced 18 PRs.
+**A day stays under 400 words**, even if it produced 18 PRs. The bullets
+alone should still read as a short list: a long day is long in sub-lines.
 
 ## The file header is two sentences and a byline
 

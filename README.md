@@ -29,6 +29,9 @@ says where it got to. A real day, from the example below:
 - hover bubbles: sponsors say what their marketing would like, animals
   something funny
 - leg repair I approve in admin rather than something that just happens `#25`
+  **why:** characters generated on production came back with their legs cut off
+  **I decided:** I approve each repair rather than have one happen to a card I
+  never looked at
 - free recuts for last year's cutouts `#27`
 - what the pier costs to load, which is how images went behind imgproxy `#29`
 - the map zoomed 2.5x, a city you scroll into `#30`, and a short address `#31`
@@ -47,6 +50,25 @@ postponed it, still want it.*
 
 The last line of that day has no tag, so a month later the Slack DM button is
 still visibly missing, and `*Could use a hand:*` says so out loud.
+
+## The reasoning under a bullet
+
+A bullet is the index and stays one line. Two optional sub-lines carry the
+thinking, indented under the bullet they belong to:
+
+- `**why:**` — the state of the world that made the ask. The bug seen, the
+  thing that read wrong, the question asked before the work started.
+- `**I decided:**` — the call made inside the work, above all one that closed
+  off an alternative: a number picked, a check dropped, a shape turned down.
+
+This is the part a reviewer cannot get from the diff. Five libraries, three
+models and a refactor into jobs all read the same in a pull request, so the log
+records human decisions only: what somebody asked for is here, and anything in
+the diff that is not here was the model's idea.
+
+Both are read off the session prompts rather than inferred from the diff. A
+decision you cannot point at a prompt for is one the model made, and it stays
+out; a bullet with nothing to say under it stays one line.
 
 [`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md)
 is the whole thing: four weeks of building a conference game, 75 PRs, 1,444
