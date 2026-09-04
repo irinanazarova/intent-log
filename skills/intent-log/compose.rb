@@ -2,14 +2,10 @@
 # frozen_string_literal: true
 
 # Merge the per-person intent files into the one log a teammate reads.
-#
-# Nobody can write anybody else's entry: prompts never leave the machine they
-# were typed on. So each person owns docs/intent/<github-login>.md and appends
-# only to that, which is also what keeps two people working the same day from
-# conflicting on every commit. This composes them into docs/intent-log.md.
-#
-# A day with one author composes to exactly what a solo log already looks like:
-# one author is the degenerate case of ten, not a second format.
+# Each person owns docs/intent/<github-login>.md and appends only to theirs; a
+# day with one author composes to exactly what a solo log already looked like.
+# Why it is split that way, and why nobody can write anybody else's, is in
+# SKILL.md.
 
 require "date"
 require "optparse"
