@@ -71,8 +71,8 @@ decision you cannot point at a prompt for is one the model made, and it stays
 out; a bullet with nothing to say under it stays one line.
 
 [`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md)
-is the whole thing: four weeks of building a conference game, 75 PRs, 1,444
-words.
+is the whole thing: seven weeks of building a conference game, 128 PRs,
+under 4,100 words.
 
 ## Two people, or ten
 
@@ -141,12 +141,14 @@ ruby extract.rb blocks --repo ~/code/myapp           # what the work blocks were
 ruby extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
 ```
 
-Three things it handles, each of which got the log wrong when done by hand:
+Four things it handles, each of which got the log wrong when done by hand:
 transcript timestamps are UTC, so anything before ~07:00 local lands on the
 wrong day; every worktree gets its own directory under `~/.claude/projects/`,
-and missing them makes your own asks look like the agent's; and a day is a work
+and missing them makes your own asks look like the agent's; a day is a work
 block rather than a date, so a session running past midnight stays with the day
-it started.
+it started; and a prompt typed while the model is still working is not a user
+turn but a queued attachment, which is how 523 of one person's prompts over
+seven weeks, the ones that defined this skill among them, went unread.
 
 **`check.rb` — asserts what reading misses.** Every PR appears exactly once with
 the right state marker, entries run oldest first, each day is a list rather than

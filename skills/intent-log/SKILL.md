@@ -1,6 +1,6 @@
 ---
 name: intent-log
-description: Keep docs/intent-log.md, one short list per day of what a person worked on, each line tagged with the PR it produced, so a teammate can see where the work got to without reading every pull request. Use when asked to write, update, backfill, or reconstruct an intent log, or to catch a colleague up on a burst of agent-assisted work.
+description: Keep docs/intent-log.md, one short list per day of what a person worked on, each line tagged with the PR it produced and carrying the reasoning behind it, so a teammate can see where the work got to, and tell what was intended from what merely happened, without reading every pull request. Use when asked to write, update, backfill, or reconstruct an intent log, or to catch a colleague up on a burst of agent-assisted work.
 ---
 
 # Intent log
@@ -232,6 +232,13 @@ These each produced a wrong log before the scripts existed:
   placeholders and caveats all land as `type: "user"`, and reading them as
   prompts puts a page of skill documentation in the log. They carry
   `isMeta: true`; filter on that rather than on a list of prefixes.
+- **A prompt typed while the model is working is not a user turn.** It lands
+  as an `attachment` of type `queued_command`, with the text under `prompt`
+  and `origin.kind: "human"`, and if the running turn absorbs it that is the
+  only record of it. Reading `type: "user"` alone missed 523 of one person's
+  prompts over seven weeks, among them the ones that defined this skill. A
+  queued prompt the turn did not absorb is delivered again as a user turn, so
+  the reader drops a queued one whose text the same transcript delivered.
 - **Parallel sessions interleave.** One day may hold three sessions on different
   branches. They merge into one entry; `extract.rb` marks blocks that span
   more than one source with `[+worktree]`.
