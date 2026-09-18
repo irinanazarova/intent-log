@@ -154,14 +154,36 @@ this page are for whoever writes the log, not for whoever reads it.
 
 ## Updating (the normal case)
 
-1. `ruby <skill>/extract.rb blocks --repo <repo>` to see the work blocks, then
-   `ruby <skill>/extract.rb dump <YYYY-MM-DD> --repo <repo>` for the prompts.
-2. `gh pr list --state all --limit 100 --json number,state,title,createdAt,mergedAt`
-   for what shipped and what state it is in. **Convert those timestamps to local time**; `gh` returns UTC.
-3. Write the list. Append at the bottom of your own `docs/intent/<login>.md`,
-   or of `docs/intent-log.md` where a repo keeps no per-person files.
-4. `ruby <skill>/compose.rb`, if there are per-person files.
-5. `ruby <skill>/check.rb docs/intent-log.md`.
+**Write the entry on the branch, as the last thing before the merge.** The work
+is still in hand, the PR number already exists, and the entry rides in the PR it
+describes, so tagging a PR never costs a PR of its own. Reconstruction a week
+later is what this replaces, and it was lossy every time.
+
+1. Open the PR first: the entry names its number, so there has to be one.
+2. `ruby <skill>/extract.rb dump <YYYY-MM-DD> --repo <repo>` for the prompts
+   behind the work. Sub-lines come from what was typed, never from the diff.
+3. `gh pr list --state all --limit 100 --json number,state,title,createdAt,mergedAt`
+   for anything else still untagged. **Convert those timestamps to local time**;
+   `gh` returns UTC.
+4. Write the list, appending at the bottom of your own `docs/intent/<login>.md`.
+5. `ruby <skill>/compose.rb`, then `ruby <skill>/check.rb docs/intent-log.md`.
+6. Commit it onto the branch, push, and merge.
+
+**Tag the PR you are about to merge bare** — `` `#160` `` rather than
+`` `#160 open` ``. It is open while you write the line and merged a minute
+later, so `open` is stale on arrival, and under this loop every PR would arrive
+that way and need correcting by the next one. `check.rb` allows a bare tag for
+the PR whose head branch is checked out, and nowhere else: standing on the
+branch is what says you are about to merge it.
+
+A day's other work — the asks that shipped nothing, the reversals, the things
+you decided against — has no merge to hang off. It goes in the same entry while
+you are there, which is the other reason to write at the merge rather than after
+it: that material is in the prompts of the block you are already reading.
+
+**When a day ends without a merge**, write it anyway rather than letting it
+stack up; `intent-nag.rb` is the backstop and it only speaks at three days
+behind, by which point the reconstruction is already lossy.
 
 ## A team writes one file each
 

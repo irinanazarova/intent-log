@@ -73,7 +73,8 @@ end
 
 def pull_requests(repo)
   target = repo ? "--repo #{repo}" : ""
-  raw = `gh pr list #{target} --state all --limit 500 --json number,state,title,author`
+  fields = "number,state,title,author,headRefName"
+  raw = `gh pr list #{target} --state all --limit 500 --json #{fields}`
   abort "gh pr list failed" unless $?.success?
   JSON.parse(raw).to_h { [_1["number"], _1] }
 end
@@ -140,6 +141,12 @@ tagged = Hash.new { |h, k| h[k] = [] }
 body.scan(/#(\d+)(?: (dropped|open))?/) { |number, marker| tagged[number.to_i] << marker }
 
 expected = {"MERGED" => nil, "CLOSED" => "dropped", "OPEN" => "open"}
+
+# The branch this is run on. An entry is written as the last thing before its
+# own merge, so the PR it tags is open while the tag is written and merged a
+# minute later: on that one branch a bare tag is right rather than early.
+branch = `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
+branch = nil if branch.empty? || branch == "HEAD"
 known.sort.each do |number, pr|
   markers = tagged[number]
   if markers.empty?
@@ -151,7 +158,9 @@ known.sort.each do |number, pr|
   end
 
   want = expected.fetch(pr["state"])
-  markers.reject { _1 == want }.each do |got|
+  allowed = [want]
+  allowed << nil if pr["state"] == "OPEN" && branch && pr["headRefName"] == branch
+  markers.reject { allowed.include?(_1) }.each do |got|
     shown = got ? "`##{number} #{got}`" : "a bare `##{number}`"
     wanted = want ? "`##{number} #{want}`" : "a bare `##{number}`"
     failures << "#{shown} marks a #{pr["state"].downcase} PR; expected #{wanted}"
