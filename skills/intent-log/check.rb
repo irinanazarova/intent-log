@@ -7,9 +7,11 @@
 require "json"
 require "date"
 require "optparse"
+require "shellwords"
 
 options = {log: "docs/intent-log.md", year: Date.today.year, max_words: 400,
-           max_bullet: 20, width: 79, fix: false, repo: nil, dir: "docs/intent"}
+           max_bullet: 20, width: 79, fix: false, repo: nil, dir: "docs/intent",
+           promises: "docs/promises.rb"}
 parser = OptionParser.new do |opts|
   opts.banner = "usage: check.rb [docs/intent-log.md] [options]"
   opts.on("--year YEAR", Integer, "year the headings belong to") { options[:year] = _1 }
@@ -18,6 +20,7 @@ parser = OptionParser.new do |opts|
   opts.on("--width N", Integer, "wrap width (default: 79)") { options[:width] = _1 }
   opts.on("--repo OWNER/NAME", "repo the PRs belong to (default: cwd)") { options[:repo] = _1 }
   opts.on("--dir PATH", "per-person sources, if any (default: docs/intent)") { options[:dir] = _1 }
+  opts.on("--promises PATH", "what promote.rb keeps (default: docs/promises.rb)") { options[:promises] = _1 }
   opts.on("--fix", "rewrap the file rather than report on it") { options[:fix] = true }
 end
 parser.parse!
@@ -247,10 +250,27 @@ if Dir.exist?(options[:dir])
   end
 end
 
+# A promise said in the log and missing from docs/promises.rb is one the next
+# agent cannot see. A promise with no oracle is a note, not a failure: it is
+# the queue of checks still to write, the way *Could use a hand* is the queue
+# of work.
+notes = []
+promote = File.join(__dir__, "promote.rb")
+if File.exist?(promote)
+  args = ["--log", options[:log], "--dir", options[:dir], "--out", options[:promises],
+          "--year", options[:year].to_s, "--check"].shelljoin
+  said = `ruby #{promote.shellescape} #{args} 2>&1`
+  lines = said.lines.map(&:strip)
+  notes.concat(lines.select { _1.start_with?("note:") })
+  failures.concat(lines.filter_map { _1.delete_prefix("- ") if _1.start_with?("- ") }) unless $?.success?
+end
+
 if failures.any?
   puts "#{failures.size} problem(s):"
   failures.each { puts "  - #{_1}" }
+  notes.each { puts _1 }
   exit 1
 end
 
 puts "ok: #{known.size} PRs accounted for across #{dated.size} entries"
+notes.each { puts _1 }

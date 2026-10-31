@@ -70,6 +70,33 @@ Both are read off the session prompts rather than inferred from the diff. A
 decision you cannot point at a prompt for is one the model made, and it stays
 out; a bullet with nothing to say under it stays one line.
 
+## Promises
+
+A third sub-line, `**promise:**`, is for what must stay true after the work
+and every change after it. A decision closes a choice once; a promise has to
+keep holding, and the next agent can break it without noticing.
+
+```markdown
+- the game economy: coins and hearts, quests for sharing `#10`
+  **promise:** a wallet balance always equals the sum of its ledger
+```
+
+`promote.rb` lifts these into `docs/promises.rb`, the present tense of the log,
+each pointed at the oracle that checks it:
+
+```ruby
+promise :wallet_is_ledger,
+  "a wallet balance always equals the sum of its ledger",
+  from: "Irina, Aug 10, 2026, #10",
+  oracle: "spec/oracles/wallet_spec.rb"
+```
+
+The log says how we came to want something. This file says what an agent must
+not break today. A new promise arrives as `oracle: :pending`, and `check.rb`
+lists those: the checks still to write, the way `*Could use a hand:*` lists the
+work. A promise you change your mind about is retired, never deleted, so its
+history stays beside it.
+
 [`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md)
 is the whole thing: seven weeks of building a conference game, 128 PRs,
 under 4,100 words.
@@ -168,6 +195,15 @@ ruby check.rb ~/code/myapp/docs/intent-log.md --repo owner/name --fix  # rewrap
 
 **`compose.rb` — merges the per-person files into the log you read.** Skip it
 in a repo where one person writes everything and there is no `docs/intent/`.
+
+**`promote.rb`: lifts every `**promise:**` into `docs/promises.rb`.**
+Add-only and keyed by the promise's words, so an oracle attached by hand, or a
+renamed slug, survives the next run.
+
+```sh
+ruby promote.rb                 # log -> docs/promises.rb
+ruby promote.rb --check         # exit 1 if a promise or an oracle file is missing
+```
 
 **`intent-stage.rb` — saves each session's prompts as you go**, into
 `.intent/staging/<date>.jsonl`, so the entry is written from fresh material
