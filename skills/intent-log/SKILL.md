@@ -130,18 +130,32 @@ the reach check in `Pier::SayForm`" is what the diff already says.
 
 A decision closes a choice once. A promise has to keep holding: the next agent
 can break it next month without noticing, because nothing in the diff says it
-was meant. **Wallet balances always match the ledger. Archiving deletes
-nothing. A link sent before go-live keeps working.** Those are promises.
+was meant. **Every accrual and spend recorded. The ledger locked once
+written. People invited before go-live keep working links.** Those are promises.
 
 ```markdown
 - the game economy: coins and hearts, quests for sharing `#10`
-  **promise:** a wallet balance always equals the sum of its ledger
+  **promise:** every accrual and spend recorded
 ```
 
 **Write one only when the human said it**, in their words: always, never,
 must, keep, without. Same rule as the other sub-lines, read off the prompts.
 Most decisions are not promises; a promise you had to talk yourself into is
-the model's.
+the model's. A tidier sentence of your own is the model's too: "a balance always
+equals the sum of its ledger" reads better than "every accrual and spend
+recorded", and nobody said it.
+
+**`extract.rb promises` lists the sentences carrying those words, and most are
+not promises.** On eleven weeks of real prompts it returned 29, and about one in
+ten was a promise. The rest were instructions for that minute ("keep the waving
+movement") or rules for the agent ("always commit, push, PR"). **Read the prompts
+that follow a hit before believing it.** "All gems that are gonna be dropped
+should belong to someone in the game" was reversed eight minutes later by "keep
+this logic", so the promise it reads as is one the human turned down.
+
+**A promise older than the prompts rests on the log.** Claude Code prunes old
+transcripts, so past staging's first day a backfill has only what the log already
+records: lift a promise only where its own bullet or sub-line says it.
 
 **`promote.rb` lifts them into `docs/promises.rb`**, the present tense of the
 log. The log says how we came to want something. This file says what an agent
@@ -149,15 +163,17 @@ must not break today.
 
 ```ruby
 promise :wallet_is_ledger,
-  "a wallet balance always equals the sum of its ledger",
+  "every accrual and spend recorded",
   from: "Irina, Aug 10, 2026, #10",
   oracle: "spec/oracles/wallet_spec.rb"
 ```
 
-It is plain Ruby calls with no library behind them, and the app never loads
-it. It is add-only, keyed by the promise's words: rename the slug, attach an
-oracle, and the next run leaves it alone. The words stay as they were said;
-precision belongs in the oracle.
+It reads as Ruby, needs no library, and is parsed rather than run: `check.rb`
+runs on whatever branch is checked out, and evaluating this file would run that
+branch's code. So it holds `promise` calls with literal values and nothing else,
+and anything else is refused with its line number. It is add-only, keyed by the
+promise's words: rename the slug, attach an oracle, and the next run leaves it
+alone. The words stay as they were said; precision belongs in the oracle.
 
 **Retire a promise, never delete it.** The log still says it, so a deleted one
 comes back on the next run. A change of mind is an ordinary bullet in the log,
@@ -167,7 +183,19 @@ storage"`. That is the promise revised on purpose, with its history beside it.
 **A promise starts with `oracle: :pending`**, and `check.rb` lists those as a
 note rather than a failure. They are the queue of checks still to write, the
 way `*Could use a hand:*` is the queue of work. A path that does not exist is
-a failure.
+a failure, and so is a file that carries neither the promise's words nor its
+slug. `promote.rb --check --strict` fails on a pending one too, for a repo that
+wants every promise checked before it merges.
+
+**The next agent reads the file only if something tells it to**, so the repo's
+`CLAUDE.md` or `AGENTS.md` carries this, and `check.rb` says when neither
+mentions it:
+
+```markdown
+`docs/promises.rb` is what must stay true. Read it before changing what it covers.
+If a change would break a promise, stop and ask. Never edit an oracle to get it
+passing; retiring a promise is the human's call.
+```
 
 ### Writing an oracle
 
@@ -179,10 +207,32 @@ breaking it, then point `oracle:` at its file.
   agrees with every bug.
 - **Generated sequences, not examples.** Random runs of earn, spend, refund,
   retry, against the model and the app side by side, compared after every
-  step. A property-based library shrinks a failure to the shortest run that
-  breaks it, and that counterexample is what the next agent reads.
+  step. A property-based library shrinks a failure toward a short run that
+  breaks it, and that counterexample is what the next agent reads, so have the
+  failure say which step broke and what the model expected.
 - **The promise's words as the test's name.** Whoever reads the failure should
   see which promise broke without opening this file.
+- **Break the code once and watch it fail.** `check.rb` confirms an oracle exists
+  and names its promise. It cannot run it, and an oracle that never failed has
+  shown nothing. Oracles run with the rest of the test suite.
+
+In Ruby the `pbt` gem does the generating and shrinking. Pass `worker: :none`, so
+each run stays inside the spec's transaction:
+
+```ruby
+it "every accrual and spend recorded" do
+  Pbt.assert(worker: :none) do
+    Pbt.property(steps) do |run|                 # generated [action, amount] lists
+      wallet, model = create(:user).wallet, WalletModel.new
+      run.each do |step|
+        perform(wallet, step)
+        model.apply(*step)
+        raise "after #{step}" unless wallet.coins == model.coins
+      end
+    end
+  end
+end
+```
 
 ## What stays out
 
@@ -325,6 +375,11 @@ These each produced a wrong log before the scripts existed:
 - **Parallel sessions interleave.** One day may hold three sessions on different
   branches. They merge into one entry; `extract.rb` marks blocks that span
   more than one source with `[+worktree]`.
+- **Old transcripts are gone.** Claude Code prunes `~/.claude/projects/`, about
+  a month back by default, so `.intent/staging/` is the only record past that;
+  on the log this skill was built against it held 643 of 788 prompts. `extract.rb`
+  reads both, and `extract.rb sources` says how much rests on staging. Any
+  history older than both survives only in the log.
 - **The author's memory of dates is a hypothesis.** Check it against the
   transcript before rewriting an entry.
 - **A year is only in a heading if somebody wrote it there.** Both scripts fall
@@ -337,8 +392,8 @@ These each produced a wrong log before the scripts existed:
 `check.rb` asserts every PR appears exactly once with the right state marker,
 entries run oldest first, every day is a list, no bullet runs to a paragraph,
 and no day runs long. Where the log says a promise, it also asserts every one
-is in `docs/promises.rb` and every oracle path exists, and lists the promises
-still waiting for one. Run it after every write; it catches dropped PRs that
+is in `docs/promises.rb` and every oracle exists and names its promise, and lists
+the promises still waiting for one. Run it after every write; it catches dropped PRs that
 reading cannot. `--fix` rewraps the file, keeping
 bullets hanging-indented.
 

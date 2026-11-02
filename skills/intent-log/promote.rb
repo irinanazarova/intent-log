@@ -12,46 +12,98 @@
 
 require "date"
 require "optparse"
+require "pathname"
+require "ripper"
 
-options = {log: "docs/intent-log.md", dir: "docs/intent", out: "docs/promises.rb",
-           year: Date.today.year, check: false, strict: false}
+options = {log: "docs/intent-log.md", year: Date.today.year, check: false, strict: false}
 OptionParser.new do |opts|
   opts.banner = "usage: promote.rb [options]"
   opts.on("--log PATH", "solo log, read when there is no --dir (default: docs/intent-log.md)") { options[:log] = _1 }
-  opts.on("--dir PATH", "per-person files, read when present (default: docs/intent)") { options[:dir] = _1 }
-  opts.on("--out PATH", "the promises file (default: docs/promises.rb)") { options[:out] = _1 }
+  opts.on("--dir PATH", "per-person files, read when present (default: intent/ beside the log)") { options[:dir] = _1 }
+  opts.on("--out PATH", "the promises file (default: promises.rb beside the log)") { options[:out] = _1 }
   opts.on("--year YEAR", Integer, "year the headings belong to") { options[:year] = _1 }
-  opts.on("--check", "exit 1 if a promise is missing or an oracle path is wrong") { options[:check] = true }
+  opts.on("--check", "exit 1 if a promise is missing or an oracle does not check it") { options[:check] = true }
   opts.on("--strict", "with --check, a promise with no oracle fails too") { options[:strict] = true }
 end.parse!
+options[:dir] ||= File.join(File.dirname(options[:log]), "intent")
+options[:out] ||= File.join(File.dirname(options[:log]), "promises.rb")
 
 HEADER = <<~RUBY
-  # What must stay true. Each promise is a **promise:** line from the intent
-  # log, in the words it was said in, with the oracle that checks it.
-  #
-  # promote.rb adds new ones at the bottom; edit the rest by hand. Retire a
-  # promise rather than delete it: the log still says it, so a deleted one
-  # comes back on the next run.
+  # What must stay true, in the words it was said in, with the oracle that checks it.
+  # promote.rb adds new ones at the bottom from the intent log; edit the rest by hand.
+  # Retire a promise rather than delete it: the log still says it, so it would come back.
 RUBY
 
 Promise = Struct.new(:slug, :said, :from, :oracle, :retired, keyword_init: true)
 
-# docs/promises.rb is plain calls to `promise`, run against this and nothing
-# else, so the file needs no library and the app never has to load it.
+# docs/promises.rb reads as Ruby and is never run. check.rb runs on whatever
+# branch is checked out, and evaluating this file would run that branch's code.
 class Book
-  attr_reader :promises
+  KEYWORDS = %w[from oracle retired].freeze
 
   def self.read(path)
-    book = new
-    book.instance_eval(File.read(path), path) if File.exist?(path)
-    book.promises
+    return [] unless File.exist?(path)
+
+    tree = Ripper.sexp(File.read(path)) or abort "#{path} is not valid Ruby; `ruby -c #{path}` says where"
+    tree[1].reject { _1.first == :void_stmt }.map { new(path).promise(_1) }
   end
 
-  def initialize = @promises = []
+  def initialize(path) = @path = path
 
-  def promise(slug, said, from: nil, oracle: :pending, retired: nil)
-    @promises << Promise.new(slug:, said:, from:, oracle:, retired:)
+  def promise(node)
+    args = arguments(node)
+    slug, said, options = args.map { literal(_1, node) }
+    options ||= {}
+    refuse(node, "a promise is a symbol and its words") unless slug.is_a?(Symbol) && said.is_a?(String) && !said.strip.empty?
+
+    unknown = options.keys - KEYWORDS
+    refuse(node, "unknown #{unknown.join(", ")}") if unknown.any?
+    refuse(node, "from: is a string") unless options.fetch("from", "").is_a?(String)
+    refuse(node, "retired: is a string saying who and why") unless options.fetch("retired", "").is_a?(String)
+
+    oracle = options.fetch("oracle", :pending)
+    unless oracle == :pending || oracle.is_a?(String) || (oracle.is_a?(Array) && oracle.all?(String))
+      refuse(node, "oracle: is :pending or a path, not #{oracle.inspect}")
+    end
+
+    Promise.new(slug:, said:, from: options["from"], oracle:, retired: options["retired"])
   end
+
+  private
+
+  def arguments(node)
+    case node
+    in [:command, [:@ident, "promise", _], [:args_add_block, args, false]] then args
+    in [:method_add_arg, [:fcall, [:@ident, "promise", _]], [:arg_paren, [:args_add_block, args, false]]] then args
+    else refuse(node, "only promise calls belong here")
+    end
+  end
+
+  def literal(value, node)
+    case value
+    in [:symbol_literal, [:symbol, [_, name, _]]] then name.to_sym
+    in [:string_literal, [:string_content, *parts]] if parts.all? { _1.first == :@tstring_content }
+      parts.map { _1[1] }.join.gsub(/\\(.)/m, '\1')
+    in [:string_concat, left, right] then literal(left, node) + literal(right, node)
+    in [:array, Array => items] then items.map { literal(_1, node) }
+    in [:bare_assoc_hash, pairs]
+      pairs.to_h do |pair|
+        pair in [:assoc_new, [:@label, label, _], item] or refuse(node, "only plain keywords belong here")
+        [label.delete_suffix(":"), literal(item, node)]
+      end
+    else refuse(node, "only literal values belong here")
+    end
+  end
+
+  def refuse(node, reason)
+    abort "#{@path}:#{node.flatten.grep(Integer).first}: #{reason}"
+  end
+end
+
+# Where a repo keeps its oracles, wherever this was run from.
+def project_root(path)
+  dir = Pathname(File.expand_path(path)).dirname
+  (dir.ascend.find { (_1 + ".git").exist? } || dir.parent).to_s
 end
 
 # A line that opens its own unit, so a wrapped sub-line can be put back
@@ -124,7 +176,7 @@ def said(path, display, fallback)
   end
 end
 
-def key(text) = text.downcase.gsub(/[^a-z0-9 ]/, "").split.join(" ")
+def key(text) = text.downcase.gsub(/[^\p{Alnum}\s]/, "").split.join(" ")
 
 FILLER = %w[a an the is are be it its of to that this when we our and or].freeze
 
@@ -163,12 +215,30 @@ if options[:check]
     failures << ":#{slug} names #{same.size} promises; give each its own" if same.size > 1
   end
   live = kept.reject(&:retired)
+  root = project_root(options[:out])
   live.each do |promise|
-    next unless promise.oracle.is_a?(String)
-    next if File.exist?(promise.oracle)
+    next if promise.oracle == :pending
 
-    failures << ":#{promise.slug} points at #{promise.oracle}, which does not exist"
+    Array(promise.oracle).each do |oracle|
+      path = File.expand_path(oracle, root)
+      unless File.file?(path)
+        failures << ":#{promise.slug} points at #{oracle}, which does not exist"
+        next
+      end
+
+      source = File.read(path).scrub
+      next if key(source).include?(key(promise.said)) || source.include?(promise.slug.to_s)
+
+      failures << ":#{promise.slug} points at #{oracle}, which never names it; " \
+        "put the promise's words in the test's name"
+    end
   end
+
+  told = %w[CLAUDE.md AGENTS.md .claude/CLAUDE.md].any? do |name|
+    path = File.join(root, name)
+    File.file?(path) && File.read(path).scrub.include?(File.basename(options[:out]))
+  end
+  puts "note: no CLAUDE.md or AGENTS.md mentions #{File.basename(options[:out])}, so an agent here never reads it" if live.any? && !told
 
   pending = live.select { _1.oracle == :pending }
   if pending.any?

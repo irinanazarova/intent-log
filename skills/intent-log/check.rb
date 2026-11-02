@@ -10,8 +10,7 @@ require "optparse"
 require "shellwords"
 
 options = {log: "docs/intent-log.md", year: Date.today.year, max_words: 400,
-           max_bullet: 20, width: 79, fix: false, repo: nil, dir: "docs/intent",
-           promises: "docs/promises.rb"}
+           max_bullet: 20, width: 79, fix: false, repo: nil}
 parser = OptionParser.new do |opts|
   opts.banner = "usage: check.rb [docs/intent-log.md] [options]"
   opts.on("--year YEAR", Integer, "year the headings belong to") { options[:year] = _1 }
@@ -19,12 +18,14 @@ parser = OptionParser.new do |opts|
   opts.on("--max-bullet N", Integer, "longest a bullet may run (default: 20)") { options[:max_bullet] = _1 }
   opts.on("--width N", Integer, "wrap width (default: 79)") { options[:width] = _1 }
   opts.on("--repo OWNER/NAME", "repo the PRs belong to (default: cwd)") { options[:repo] = _1 }
-  opts.on("--dir PATH", "per-person sources, if any (default: docs/intent)") { options[:dir] = _1 }
-  opts.on("--promises PATH", "what promote.rb keeps (default: docs/promises.rb)") { options[:promises] = _1 }
+  opts.on("--dir PATH", "per-person sources, if any (default: intent/ beside the log)") { options[:dir] = _1 }
+  opts.on("--promises PATH", "what promote.rb keeps (default: promises.rb beside the log)") { options[:promises] = _1 }
   opts.on("--fix", "rewrap the file rather than report on it") { options[:fix] = true }
 end
 parser.parse!
 options[:log] = ARGV.shift if ARGV.any?
+options[:dir] ||= File.join(File.dirname(options[:log]), "intent")
+options[:promises] ||= File.join(File.dirname(options[:log]), "promises.rb")
 
 # A line that opens its own unit: a bullet, a **why:** sub-line under one, an
 # italic tail, or a section label.
@@ -262,7 +263,10 @@ if File.exist?(promote)
   said = `ruby #{promote.shellescape} #{args} 2>&1`
   lines = said.lines.map(&:strip)
   notes.concat(lines.select { _1.start_with?("note:") })
-  failures.concat(lines.filter_map { _1.delete_prefix("- ") if _1.start_with?("- ") }) unless $?.success?
+  unless $?.success?
+    problems = lines.filter_map { _1.delete_prefix("- ") if _1.start_with?("- ") }
+    failures.concat(problems.any? ? problems : ["promote.rb --check failed: #{said.strip}"])
+  end
 end
 
 if failures.any?

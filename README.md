@@ -78,7 +78,7 @@ keep holding, and the next agent can break it without noticing.
 
 ```markdown
 - the game economy: coins and hearts, quests for sharing `#10`
-  **promise:** a wallet balance always equals the sum of its ledger
+  **promise:** every accrual and spend recorded
 ```
 
 `promote.rb` lifts these into `docs/promises.rb`, the present tense of the log,
@@ -86,7 +86,7 @@ each pointed at the oracle that checks it:
 
 ```ruby
 promise :wallet_is_ledger,
-  "a wallet balance always equals the sum of its ledger",
+  "every accrual and spend recorded",
   from: "Irina, Aug 10, 2026, #10",
   oracle: "spec/oracles/wallet_spec.rb"
 ```
@@ -96,6 +96,10 @@ not break today. A new promise arrives as `oracle: :pending`, and `check.rb`
 lists those: the checks still to write, the way `*Could use a hand:*` lists the
 work. A promise you change your mind about is retired, never deleted, so its
 history stays beside it.
+
+An oracle is a test that runs a small independent model beside the real code on
+generated sequences of actions. [`SKILL.md`](skills/intent-log/SKILL.md) says how
+to write one, and what to add to `CLAUDE.md` so the next agent reads the file.
 
 [`skills/intent-log/example/sfruby-cards.md`](skills/intent-log/example/sfruby-cards.md)
 is the whole thing: seven weeks of building a conference game, 128 PRs,
@@ -152,6 +156,8 @@ cp -r intent-log/skills/intent-log ~/.claude/skills/
 ```
 
 Then `/intent-log` in any repo, in Claude Code. It writes `docs/intent-log.md`.
+The scripts need Ruby 3.1 or newer and nothing else; `ruby test/promises_test.rb`
+runs their tests.
 
 ## What the scripts do
 
@@ -166,16 +172,19 @@ from memory. It reads only your own turns, never the assistant's.
 ```sh
 ruby extract.rb blocks --repo ~/code/myapp           # what the work blocks were
 ruby extract.rb dump 2026-08-14 --repo ~/code/myapp  # that day's prompts
+ruby extract.rb promises --repo ~/code/myapp         # sentences that might be promises
 ```
 
-Four things it handles, each of which got the log wrong when done by hand:
+Five things it handles, each of which got the log wrong when done by hand:
 transcript timestamps are UTC, so anything before ~07:00 local lands on the
 wrong day; every worktree gets its own directory under `~/.claude/projects/`,
 and missing them makes your own asks look like the agent's; a day is a work
 block rather than a date, so a session running past midnight stays with the day
-it started; and a prompt typed while the model is still working is not a user
+it started; a prompt typed while the model is still working is not a user
 turn but a queued attachment, which is how 523 of one person's prompts over
-seven weeks, the ones that defined this skill among them, went unread.
+seven weeks, the ones that defined this skill among them, went unread; and
+Claude Code prunes old transcripts, so past about a month the only record is
+what `intent-stage.rb` saved, which it reads too.
 
 **`check.rb` — asserts what reading misses.** Every PR appears exactly once with
 the right state marker, entries run oldest first, each day is a list rather than
@@ -202,8 +211,12 @@ renamed slug, survives the next run.
 
 ```sh
 ruby promote.rb                 # log -> docs/promises.rb
-ruby promote.rb --check         # exit 1 if a promise or an oracle file is missing
+ruby promote.rb --check         # exit 1 if a promise or an oracle is missing
+ruby promote.rb --check --strict  # exit 1 on a promise with no oracle too
 ```
+
+It parses `docs/promises.rb` and never runs it, so linting somebody's branch
+cannot execute what that branch put there.
 
 **`intent-stage.rb` — saves each session's prompts as you go**, into
 `.intent/staging/<date>.jsonl`, so the entry is written from fresh material
