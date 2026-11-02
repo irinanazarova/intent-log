@@ -19,6 +19,11 @@ NOISE_EXACT = [
 ].to_set
 
 Prompt = Struct.new(:at, :source, :text)
+STAGED = "staging"
+
+# The words a promise is said in. These find candidates for a person to read;
+# most hits are ordinary instructions and stay out of the log.
+PROMISE_WORDS = /\b(always|never|must|keeps?|keeping|without)\b/i
 
 # Every Claude Code project dir for this repo, worktrees included.
 def project_dirs(repo)
@@ -82,12 +87,25 @@ def dedupe(prompts)
   end
 end
 
+# Claude Code prunes old transcripts, so past about a month what intent-stage.rb
+# saved is the only record of a prompt.
+def staged_prompts(repo)
+  Dir.glob(File.join(File.expand_path(repo), ".intent/staging/*.jsonl")).flat_map do |file|
+    File.foreach(file).filter_map do |line|
+      record = JSON.parse(line)
+      Prompt.new(Time.parse(record["at"]).localtime, STAGED, record["text"]) if record["at"] && record["text"]
+    rescue JSON::ParserError, ArgumentError
+      nil
+    end
+  end
+end
+
 def load_prompts(repo)
   dirs = project_dirs(repo)
   prompts = dirs.flat_map do |dir|
     Dir.glob("#{dir}/*.jsonl").flat_map { prompts_in(_1, File.basename(dir)) }
   end
-  [dedupe(prompts.sort_by(&:at)), dirs]
+  [dedupe((prompts + staged_prompts(repo)).sort_by(&:at)), dirs]
 end
 
 # A work block breaks on a long idle gap, never at midnight.
@@ -97,7 +115,7 @@ end
 
 options = {repo: Dir.pwd, gap: 5.0, cap: 400}
 parser = OptionParser.new do |opts|
-  opts.banner = "usage: extract.rb {blocks|dump|sources} [YYYY-MM-DD[..YYYY-MM-DD]] [options]"
+  opts.banner = "usage: extract.rb {blocks|dump|promises|sources} [YYYY-MM-DD[..YYYY-MM-DD]] [options]"
   opts.on("--repo PATH", "repo to read prompts for (default: cwd)") { options[:repo] = _1 }
   opts.on("--gap HOURS", Float, "idle hours that end a work block (default: 5)") { options[:gap] = _1 }
   opts.on("--cap CHARS", Integer, "max chars per prompt when dumping (default: 400)") { options[:cap] = _1 }
@@ -105,7 +123,7 @@ end
 parser.parse!
 
 mode = ARGV.shift
-abort parser.banner unless %w[blocks dump sources].include?(mode)
+abort parser.banner unless %w[blocks dump promises sources].include?(mode)
 low, high = ARGV.shift.to_s.split("..")
 high ||= low
 
@@ -113,8 +131,10 @@ prompts, dirs = load_prompts(options[:repo])
 abort "no prompts found for #{options[:repo]} (looked in #{dirs.size} project dirs)" if prompts.empty?
 
 if mode == "sources"
-  puts "#{prompts.size} prompts across #{dirs.size} project dirs:"
+  puts "#{prompts.size} prompts, from #{prompts.first.at.strftime("%Y-%m-%d")}, across #{dirs.size} project dirs:"
   dirs.each { puts "  #{File.basename(_1)}" }
+  staged = prompts.count { _1.source == STAGED }
+  puts "  .intent/staging (#{staged} prompts only it still holds)" if staged.positive?
   exit
 end
 
@@ -123,12 +143,21 @@ in_range = lambda do |time|
   (low.nil? || day >= low) && (high.nil? || day <= high)
 end
 
+if mode == "promises"
+  prompts.select { in_range.call(_1.at) }.each do |prompt|
+    prompt.text.split(/(?<=[.!?])\s+|\n+/).grep(PROMISE_WORDS).each do |sentence|
+      puts "#{prompt.at.strftime("%Y-%m-%d %H:%M")}\t#{sentence.strip[0, options[:cap]]}"
+    end
+  end
+  exit
+end
+
 work_blocks(prompts, options[:gap]).each do |block|
   next unless in_range.call(block.first.at)
 
   span = "#{block.first.at.strftime("%a %Y-%m-%d %H:%M")} -> #{block.last.at.strftime("%a %m-%d %H:%M")}"
   if mode == "blocks"
-    worktree = "  [+worktree]" if block.map(&:source).uniq.size > 1
+    worktree = "  [+worktree]" if (block.map(&:source).uniq - [STAGED]).size > 1
     puts format("%s  prompts=%3d%s", span, block.size, worktree)
   else
     puts "\n===== work block #{span} ====="
